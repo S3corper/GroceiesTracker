@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "GroceriesTracker Dashboard"
+description = "A polished grocery spending dashboard inspired by the provided reference image, with receipt tracking, budget setup, category summaries, savings goals, and responsive navigation."
+version = "1.0.0"
+id = "artifacts/groceries-tracker"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 25724
+
+[services.development]
+run = "pnpm --filter @workspace/groceries-tracker run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/groceries-tracker", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/groceries-tracker/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "25724"
+BASE_PATH = "/"
