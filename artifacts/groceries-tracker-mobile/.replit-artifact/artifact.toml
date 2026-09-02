@@ -1,0 +1,24 @@
+kind = "mobile"
+previewPath = "/mobile/"
+title = "GroceriesTracker for Android"
+description = "An Android-ready Expo companion app for capturing grocery receipts with the camera, recognizing line items, and turning them into a useful monthly spending summary."
+version = "1.0.0"
+id = "artifacts/groceries-tracker-mobile"
+router = "expo-domain"
+
+[[services]]
+name = "expo"
+ensurePreviewReachable = "/status"
+paths = [ "/mobile/" ]
+localPort = 23579
+
+[services.development]
+run = "pnpm --filter @workspace/groceries-tracker-mobile run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/groceries-tracker-mobile", "run", "build" ]
+run = [ "pnpm", "--filter", "@workspace/groceries-tracker-mobile", "run", "serve" ]
+
+[services.env]
+PORT = "23579"
+BASE_PATH = "/mobile/"

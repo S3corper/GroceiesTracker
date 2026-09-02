@@ -1,0 +1,44 @@
+{
+  "expo": {
+    "name": "GroceriesTracker",
+    "slug": "groceries-tracker-mobile",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/groceries-icon.png",
+    "scheme": "groceries-tracker-mobile",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/images/groceries-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#f4f2ef"
+    },
+    "ios": {
+      "supportsTablet": false
+    },
+    "android": {
+      "package": "com.groceriestracker.app",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/groceries-icon.png",
+        "backgroundColor": "#f4f2ef"
+      }
+    },
+    "web": {
+      "favicon": "./assets/images/groceries-icon.png"
+    },
+    "plugins": [
+      [
+        "expo-router",
+        {
+          "origin": "https://replit.com/"
+        }
+      ],
+      "expo-font",
+      "expo-web-browser"
+    ],
+    "experiments": {
+      "typedRoutes": true,
+      "reactCompiler": true
+    }
+  }
+}

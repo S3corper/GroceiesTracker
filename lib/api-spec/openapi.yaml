@@ -10,6 +10,8 @@ servers:
 tags:
   - name: health
     description: Health operations
+  - name: receipts
+    description: Receipt recognition operations
 paths:
   /healthz:
     get:
@@ -24,6 +26,37 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /receipts/scan:
+    post:
+      operationId: scanReceipt
+      tags: [receipts]
+      summary: Recognize items from a receipt image
+      description: Uses image recognition to extract receipt details and grocery items.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReceiptScanInput"
+      responses:
+        "200":
+          description: Recognized receipt data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReceiptScan"
+        "400":
+          description: Invalid receipt image
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "502":
+          description: Receipt recognition service unavailable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 components:
   schemas:
     HealthStatus:
@@ -33,4 +66,58 @@ components:
           type: string
       required:
         - status
+    ReceiptScanInput:
+      type: object
+      properties:
+        imageBase64:
+          type: string
+          minLength: 1
+          description: Base64-encoded receipt image without a data URL prefix
+        mimeType:
+          type: string
+          enum: [image/jpeg, image/png, image/webp]
+      required:
+        - imageBase64
+        - mimeType
+    ReceiptItem:
+      type: object
+      properties:
+        name:
+          type: string
+        quantity:
+          type: number
+        price:
+          type: number
+        category:
+          type: string
+      required:
+        - name
+        - quantity
+        - price
+        - category
+    ReceiptScan:
+      type: object
+      properties:
+        merchant:
+          type: string
+        date:
+          type: string
+        total:
+          type: number
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/ReceiptItem"
+      required:
+        - merchant
+        - date
+        - total
+        - items
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error
 

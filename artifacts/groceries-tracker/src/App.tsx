@@ -1,5 +1,6 @@
-import { type ReactNode, useEffect, useState } from 'react';
+import { type ReactNode, useEffect, useRef, useState } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { scanReceipt } from '@workspace/api-client-react';
 import { ErrorBoundary } from '@/components/error-boundary';
 import { Toaster } from '@/components/ui/toaster';
 import { TooltipProvider } from '@/components/ui/tooltip';
@@ -10,7 +11,6 @@ import {
   CircleDashed,
   ClipboardList,
   FileText,
-  Gift,
   LayoutDashboard,
   ListChecks,
   PieChart,
@@ -31,8 +31,9 @@ import {
 
 const queryClient = new QueryClient();
 
-type ModalKind = 'receipt' | 'budget' | 'goal' | 'upgrade' | null;
-type Receipt = { store: string; amount: number; date: string };
+type ModalKind = 'receipt' | 'budget' | 'goal' | null;
+type ReceiptItem = { name: string; quantity: number; price: number; category: string };
+type Receipt = { store: string; amount: number; date: string; items: ReceiptItem[]; imageUrl?: string };
 
 const navItems = [
   { label: 'Dashboard', icon: LayoutDashboard },
@@ -61,7 +62,6 @@ function Sidebar({
   profileOpen,
   setProfileOpen,
   onToast,
-  onUpgrade,
 }: {
   activeSection: string;
   setActiveSection: (value: string) => void;
@@ -70,7 +70,6 @@ function Sidebar({
   profileOpen: boolean;
   setProfileOpen: (value: boolean) => void;
   onToast: (message: string) => void;
-  onUpgrade: () => void;
 }) {
   return (
     <aside className="sidebar" aria-label="Primary navigation">
@@ -119,17 +118,6 @@ function Sidebar({
         ))}
       </nav>
       <div className="sidebar-bottom">
-        <div className="trial-card" data-testid="card-free-trial">
-          <div className="trial-title">Free Trial</div>
-          <div className="trial-copy">0 of 13 receipts</div>
-          <button className="upgrade-button" onClick={onUpgrade} data-testid="button-upgrade">
-            Upgrade
-          </button>
-        </div>
-        <button className="refer-button" onClick={() => onToast('Referral link copied — thank you for sharing')} data-testid="button-refer-friend">
-          <span><Gift size={10} style={{ verticalAlign: 'middle', display: 'inline', marginRight: 5 }} />Refer a friend</span>
-          <span className="refer-reward">$5</span>
-        </button>
         <button
           className="profile-button"
           onClick={() => { setProfileOpen(!profileOpen); setWorkspaceOpen(false); }}
@@ -180,19 +168,17 @@ function Modal({
   const isReceipt = kind === 'receipt';
   const isBudget = kind === 'budget';
   const isGoal = kind === 'goal';
-  const title = isReceipt ? 'Add a receipt' : isBudget ? 'Set your grocery budget' : isGoal ? 'Start a savings goal' : 'Make grocery spending feel lighter';
+  const title = isReceipt ? 'Add a receipt' : isBudget ? 'Set your grocery budget' : 'Start a savings goal';
   const subtitle = isReceipt
     ? 'A quick note now makes your month easier to understand later.'
     : isBudget
       ? 'Pick a monthly number and we’ll keep it in view without the pressure.'
-      : isGoal
-        ? 'Give your next good thing a name and a little room in the budget.'
-        : 'Upgrade for unlimited receipts, custom categories, and shared workspaces.';
+      : 'Give your next good thing a name and a little room in the budget.';
 
   const submit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (isReceipt && store.trim() && Number(amount) > 0) {
-      onReceipt({ store: store.trim(), amount: Number(amount), date });
+      onReceipt({ store: store.trim(), amount: Number(amount), date, items: [] });
       return;
     }
     if (isBudget && Number(amount) > 0) {
@@ -216,20 +202,7 @@ function Modal({
             <X size={14} />
           </button>
         </div>
-        {kind === 'upgrade' ? (
-          <>
-            <div className="form-stack">
-              <div className="receipt-row"><span>Unlimited receipt history</span><span className="refer-reward">Included</span></div>
-              <div className="receipt-row"><span>Shared household workspace</span><span className="refer-reward">Included</span></div>
-              <div className="receipt-row"><span>Category insights</span><span className="refer-reward">Included</span></div>
-            </div>
-            <div className="modal-actions">
-              <button className="secondary-button" onClick={onClose} data-testid="button-cancel-upgrade">Maybe later</button>
-              <button className="primary-button" onClick={() => { onClose(); }} data-testid="button-start-upgrade">Continue to upgrade</button>
-            </div>
-          </>
-        ) : (
-          <form className="form-stack" onSubmit={submit}>
+        <form className="form-stack" onSubmit={submit}>
             {isReceipt && (
               <>
                 <label className="field-label">Store
@@ -264,10 +237,54 @@ function Modal({
                 {isReceipt ? 'Add receipt' : isBudget ? 'Save budget' : 'Set goal'}
               </button>
             </div>
-          </form>
-        )}
+        </form>
       </section>
     </div>
+  );
+}
+
+function ReceiptsSection({ receipts, showAll, setShowAll, onAdd }: { receipts: Receipt[]; showAll: boolean; setShowAll: (value: boolean) => void; onAdd: () => void }) {
+  const visibleReceipts = showAll ? receipts : receipts.slice(0, 8);
+  return (
+    <section className="section-view">
+      <div className="section-view-head"><div><div className="section-kicker">CAPTURE & ORGANIZE</div><h2>Receipt history</h2><p>Every scan becomes a searchable grocery record.</p></div><button className="primary-button" onClick={onAdd}><Plus size={12} /> Add manually</button></div>
+      <article className="panel section-panel">
+        <div className="panel-heading-row"><div className="panel-heading">Recognized receipts</div>{receipts.length > 8 && <button className="text-button" onClick={() => setShowAll(!showAll)}>{showAll ? 'Show less' : 'View all'} <span aria-hidden="true">›</span></button>}</div>
+        {!receipts.length ? <div className="receipt-empty"><div className="empty-icon"><FileText size={13} /></div><div className="empty-copy">No receipts yet. Use Scan Receipt above to begin.</div></div> : <div className="receipt-list">{visibleReceipts.map((receipt, index) => <div className="receipt-row" key={`${receipt.store}-${receipt.date}-${index}`}><div><div className="receipt-store">{receipt.store}</div><div className="receipt-date">{receipt.date} · {receipt.items.length} recognized items</div></div><div className="receipt-total">${receipt.amount.toFixed(2)}</div></div>)}</div>}
+      </article>
+      {receipts.some((receipt) => receipt.items.length > 0) && <article className="panel section-panel recognition-note"><Target size={15} /><div><strong>Recognition is on</strong><p>New scanned line items automatically appear in Summary, grouped by category.</p></div></article>}
+    </section>
+  );
+}
+
+function SummarySection({ receipts }: { receipts: Receipt[] }) {
+  const categoryTotals = receipts.flatMap((receipt) => receipt.items).reduce<Record<string, number>>((totals, item) => {
+    totals[item.category] = (totals[item.category] ?? 0) + item.price;
+    return totals;
+  }, {});
+  const categories = Object.entries(categoryTotals).sort(([, a], [, b]) => b - a);
+  const items = receipts.flatMap((receipt) => receipt.items);
+  const total = receipts.reduce((sum, receipt) => sum + receipt.amount, 0);
+  return (
+    <section className="section-view">
+      <div className="section-view-head"><div><div className="section-kicker">A CLEARER MONTH</div><h2>Summary</h2><p>Recognized line items, organized automatically.</p></div><div className="summary-total"><span>Total spent</span><strong>${total.toFixed(2)}</strong></div></div>
+      <div className="summary-detail-grid">
+        <article className="panel section-panel"><div className="panel-heading">Category breakdown</div>{categories.length ? <div className="category-list">{categories.map(([category, value]) => <div className="category-row" key={category}><div><span className="category-dot" />{category}</div><strong>${value.toFixed(2)}</strong></div>)}</div> : <div className="receipt-empty"><div className="empty-icon"><PieChart size={13} /></div><div className="empty-copy">Scan a receipt to see category spending.</div></div>}</article>
+        <article className="panel section-panel"><div className="panel-heading">Recognized items <span className="panel-meta">{items.length} total</span></div>{items.length ? <div className="item-list">{items.slice(0, 12).map((item, index) => <div className="item-row" key={`${item.name}-${index}`}><span>{item.name}</span><small>{item.category}</small><strong>${item.price.toFixed(2)}</strong></div>)}</div> : <div className="receipt-empty"><div className="empty-icon"><ClipboardList size={13} /></div><div className="empty-copy">Your receipt items will appear here.</div></div>}</article>
+      </div>
+    </section>
+  );
+}
+
+function GroceryListsSection() {
+  const [item, setItem] = useState('');
+  const [items, setItems] = useState<string[]>([]);
+  const addItem = () => { if (item.trim()) { setItems((current) => [...current, item.trim()]); setItem(''); } };
+  return (
+    <section className="section-view">
+      <div className="section-view-head"><div><div className="section-kicker">PLAN THE NEXT SHOP</div><h2>Grocery Lists</h2><p>Keep the next trip simple and focused.</p></div><button className="primary-button" onClick={addItem}><Plus size={12} /> Add item</button></div>
+      <article className="panel section-panel list-section-panel"><div className="list-section-title"><div className="empty-icon"><ListChecks size={14} /></div><div><div className="panel-heading">Next grocery trip</div><div className="panel-subtitle">{items.length} item{items.length === 1 ? '' : 's'}</div></div></div><div className="list-input-row"><input value={item} onChange={(event) => setItem(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter') addItem(); }} placeholder="Add an item" /><button className="primary-button" onClick={addItem}><Plus size={12} /></button></div>{items.length ? <div className="item-list">{items.map((name, index) => <div className="item-row" key={`${name}-${index}`}><span><CircleDashed size={13} />{name}</span><button className="icon-text-button" onClick={() => setItems((current) => current.filter((_, itemIndex) => itemIndex !== index))}><X size={12} /></button></div>)}</div> : <div className="list-empty"><ListChecks size={24} /><span>Your list is ready for the next shop.</span></div>}</article>
+    </section>
   );
 }
 
@@ -283,6 +300,8 @@ function Dashboard() {
   const [receipts, setReceipts] = useState<Receipt[]>([]);
   const [showAll, setShowAll] = useState(false);
   const [toast, setToast] = useState('');
+  const [isScanning, setIsScanning] = useState(false);
+  const scanInputRef = useRef<HTMLInputElement>(null);
 
   const monthName = month.split(' ')[0];
   const showToast = (message: string) => setToast(message);
@@ -297,6 +316,31 @@ function Dashboard() {
     setReceipts((current) => [receipt, ...current]);
     setModal(null);
     showToast('Receipt added to your month');
+  };
+
+  const handleScanFile = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+    setIsScanning(true);
+    try {
+      const imageUrl = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result));
+        reader.onerror = () => reject(new Error('Could not read image'));
+        reader.readAsDataURL(file);
+      });
+      const comma = imageUrl.indexOf(',');
+      const imageBase64 = comma >= 0 ? imageUrl.slice(comma + 1) : imageUrl;
+      const mimeType = file.type === 'image/png' ? 'image/png' : file.type === 'image/webp' ? 'image/webp' : 'image/jpeg';
+      const result = await scanReceipt({ imageBase64, mimeType });
+      addReceipt({ store: result.merchant, amount: result.total, date: result.date, items: result.items, imageUrl });
+      showToast(`${result.items.length} receipt items recognized`);
+    } catch {
+      showToast('Could not recognize that receipt — try a clearer photo');
+    } finally {
+      setIsScanning(false);
+    }
   };
 
   const saveBudget = (amount: number) => {
@@ -324,7 +368,6 @@ function Dashboard() {
         profileOpen={profileOpen}
         setProfileOpen={setProfileOpen}
         onToast={showToast}
-        onUpgrade={() => setModal('upgrade')}
       />
       <main className="main">
         <div className="content-wrap">
@@ -346,6 +389,10 @@ function Dashboard() {
                 )}
               </div>
             </div>
+            <label className="secondary-button scan-button" data-testid="button-scan-receipt-header">
+              <ReceiptText size={12} /> {isScanning ? 'Recognizing…' : 'Scan Receipt'}
+              <input ref={scanInputRef} type="file" accept="image/*" capture="environment" onChange={handleScanFile} disabled={isScanning} />
+            </label>
             <button className="primary-button" onClick={() => setModal('receipt')} data-testid="button-add-receipt-header">
               <Plus size={12} strokeWidth={2.5} /> Add Receipt
             </button>
@@ -370,6 +417,14 @@ function Dashboard() {
             )}
           </section>
 
+          {activeSection === 'Receipts' ? (
+            <ReceiptsSection receipts={receipts} showAll={showAll} setShowAll={setShowAll} onAdd={() => setModal('receipt')} />
+          ) : activeSection === 'Summary' ? (
+            <SummarySection receipts={receipts} />
+          ) : activeSection === 'Grocery Lists' ? (
+            <GroceryListsSection />
+          ) : (
+          <>
           <section className="summary-grid" aria-label="Monthly summary">
             <article className="panel summary-panel" data-testid="card-spending-by-trip">
               <div className="panel-heading">Spending by Trip</div>
@@ -436,6 +491,8 @@ function Dashboard() {
               )}
             </article>
           </section>
+          </>
+          )}
         </div>
       </main>
       <Modal
