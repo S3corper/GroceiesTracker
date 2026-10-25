@@ -24,7 +24,7 @@ export default function GroceryListsScreen() {
       <View style={[styles.listCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
         <View style={styles.listHead}><View style={[styles.listIcon, { backgroundColor: colors.accent }]}><Feather name="shopping-cart" size={19} color={colors.primary} /></View><View style={{ flex: 1 }}><Text style={[styles.listName, { color: colors.foreground }]}>Next grocery trip</Text><Text style={[styles.listMeta, { color: colors.mutedForeground }]}>{items.length} item{items.length === 1 ? '' : 's'}</Text></View><Feather name="more-horizontal" size={18} color={colors.mutedForeground} /></View>
         <View style={styles.addRow}><TextInput value={item} onChangeText={setItem} onSubmitEditing={addItem} placeholder="Add an item" placeholderTextColor={colors.mutedForeground} style={[styles.input, { color: colors.foreground, backgroundColor: colors.secondary, borderColor: colors.border }]} returnKeyType="done" testID="input-grocery-item" /><Pressable style={({ pressed }) => [styles.addButton, { backgroundColor: colors.primary, opacity: pressed ? 0.78 : 1 }]} onPress={addItem} testID="button-add-grocery-item"><Feather name="plus" size={18} color={colors.primaryForeground} /></Pressable></View>
-        {items.length === 0 ? <View style={styles.empty}><Feather name="check-square" size={27} color={colors.mutedForeground} /><Text style={[styles.emptyTitle, { color: colors.foreground }]}>No items yet</Text><Text style={[styles.emptyBody, { color: colors.mutedForeground }]}>Start a list for the next shop.</Text></View> : items.map((name, index) => <View key={`${name}-${index}`} style={[styles.itemRow, { borderBottomColor: colors.border }]}><Feather name="circle" size={18} color={colors.mutedForeground} /><Text style={[styles.itemText, { color: colors.foreground }]}>{name}</Text><Pressable onPress={() => setItems((current) => current.filter((_, itemIndex) => itemIndex !== index))}><Feather name="x" size={16} color={colors.mutedForeground} /></Pressable></View>)}
+        {items.length === 0 ? <View style={styles.empty}><Feather name="check-square" size={27} color={colors.mutedForeground} /><Text style={[styles.emptyTitle, { color: colors.foreground }]}>No items yet</Text><Text style={[styles.emptyBody, { color: colors.mutedForeground }]}>Start a list for the next shop.</Text></View> : items.map((name, index) => <View key={`${name}-${index}`} style={[styles.itemRow, { borderBottomColor: colors.border }]}><Feather name="circle" size={18} color={colors.mutedForeground} /><Text style={[styles.itemText, { color: colors.foreground }]}>{name}</Text><Pressable accessibilityRole="button" accessibilityLabel={`Delete ${name}`} hitSlop={6} style={styles.deleteButton} onPress={() => setItems((current) => current.filter((_, itemIndex) => itemIndex !== index))}><Feather name="x" size={17} color={colors.mutedForeground} /></Pressable></View>)}
       </View>
     </ScrollView>
   );
@@ -46,6 +46,7 @@ const styles = StyleSheet.create({
   empty: { alignItems: 'center', paddingVertical: 36 },
   emptyTitle: { fontSize: 15, fontWeight: '700', marginTop: 10 },
   emptyBody: { fontSize: 12, marginTop: 4 },
-  itemRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 14, borderBottomWidth: 1 },
-  itemText: { flex: 1, fontSize: 13, fontWeight: '600' },
+  itemRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 8, borderBottomWidth: 1 },
+  itemText: { flex: 1, minWidth: 0, fontSize: 14, fontWeight: '600', flexShrink: 1 },
+  deleteButton: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
 });

@@ -5,6 +5,97 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+export interface UserProfile {
+  id: string;
+  email: string;
+  displayName: string;
+}
+
+export interface ProfileUpdateInput {
+  /**
+     * @minLength 1
+     * @maxLength 60
+     */
+  displayName: string;
+}
+
+export type SpaceKind = typeof SpaceKind[keyof typeof SpaceKind];
+
+
+export const SpaceKind = {
+  private: 'private',
+  household: 'household',
+} as const;
+
+export type SpaceRole = typeof SpaceRole[keyof typeof SpaceRole];
+
+
+export const SpaceRole = {
+  owner: 'owner',
+  member: 'member',
+} as const;
+
+export interface Space {
+  id: string;
+  name: string;
+  kind: SpaceKind;
+  timezone: string;
+  role: SpaceRole;
+}
+
+export type SpaceCreateInputKind = typeof SpaceCreateInputKind[keyof typeof SpaceCreateInputKind];
+
+
+export const SpaceCreateInputKind = {
+  private: 'private',
+  household: 'household',
+} as const;
+
+export interface SpaceCreateInput {
+  /**
+     * @minLength 1
+     * @maxLength 60
+     */
+  name: string;
+  kind: SpaceCreateInputKind;
+}
+
+export type SpaceMemberRole = typeof SpaceMemberRole[keyof typeof SpaceMemberRole];
+
+
+export const SpaceMemberRole = {
+  owner: 'owner',
+  member: 'member',
+} as const;
+
+export interface SpaceMember {
+  id: string;
+  displayName: string;
+  email: string;
+  role: SpaceMemberRole;
+}
+
+export type SpaceMembersSpaceKind = typeof SpaceMembersSpaceKind[keyof typeof SpaceMembersSpaceKind];
+
+
+export const SpaceMembersSpaceKind = {
+  private: 'private',
+  household: 'household',
+} as const;
+
+export type SpaceMembersSpace = {
+  id: string;
+  name: string;
+  kind: SpaceMembersSpaceKind;
+};
+
+export interface SpaceMembers {
+  space: SpaceMembersSpace;
+  /** @minimum 0 */
+  count: number;
+  members: SpaceMember[];
+}
+
 export interface HealthStatus {
   status: string;
 }
@@ -18,6 +109,14 @@ export const ReceiptScanInputMimeType = {
   'image/webp': 'image/webp',
 } as const;
 
+export type ReceiptScanInputProvider = typeof ReceiptScanInputProvider[keyof typeof ReceiptScanInputProvider];
+
+
+export const ReceiptScanInputProvider = {
+  local: 'local',
+  gemini: 'gemini',
+} as const;
+
 export interface ReceiptScanInput {
   /**
      * Base64-encoded receipt image without a data URL prefix
@@ -25,18 +124,29 @@ export interface ReceiptScanInput {
      */
   imageBase64: string;
   mimeType: ReceiptScanInputMimeType;
+  provider?: ReceiptScanInputProvider;
+  geminiApiKey?: string;
 }
 
 export interface ReceiptItem {
   name: string;
+  variant?: string;
   quantity: number;
   price: number;
   category: string;
+  /** Known comparable count per pack, such as 12 or 18 eggs. */
+  packCount?: number;
+  measureAmount?: number;
+  measureUnit?: string;
+  unitPriceAvailable?: boolean;
 }
 
 export interface ReceiptScan {
   merchant: string;
+  /** Purchase calendar date from the receipt, in YYYY-MM-DD form when readable. */
   date: string;
+  /** Local purchase time in HH:mm when clearly readable; omit otherwise. */
+  purchaseTime?: string;
   total: number;
   items: ReceiptItem[];
 }
@@ -44,4 +154,3 @@ export interface ReceiptScan {
 export interface ErrorResponse {
   error: string;
 }
-

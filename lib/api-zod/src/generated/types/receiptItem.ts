@@ -8,7 +8,13 @@
 
 export interface ReceiptItem {
   name: string;
+  variant?: string;
   quantity: number;
   price: number;
   category: string;
+  /** Known comparable count per pack, such as 12 or 18 eggs. */
+  packCount?: number;
+  measureAmount?: number;
+  measureUnit?: string;
+  unitPriceAvailable?: boolean;
 }

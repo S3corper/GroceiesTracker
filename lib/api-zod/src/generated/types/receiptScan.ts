@@ -9,7 +9,10 @@ import type { ReceiptItem } from './receiptItem';
 
 export interface ReceiptScan {
   merchant: string;
+  /** Purchase calendar date from the receipt, in YYYY-MM-DD form when readable. */
   date: string;
+  /** Local purchase time in HH:mm when clearly readable; omit otherwise. */
+  purchaseTime?: string;
   total: number;
   items: ReceiptItem[];
 }

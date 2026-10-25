@@ -6,6 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { ReceiptScanInputMimeType } from './receiptScanInputMimeType';
+import type { ReceiptScanInputProvider } from './receiptScanInputProvider';
 
 export interface ReceiptScanInput {
   /**
@@ -14,4 +15,6 @@ export interface ReceiptScanInput {
      */
   imageBase64: string;
   mimeType: ReceiptScanInputMimeType;
+  provider?: ReceiptScanInputProvider;
+  geminiApiKey?: string;
 }

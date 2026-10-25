@@ -57,8 +57,172 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+  /auth/me:
+    get:
+      operationId: getMyProfile
+      tags: [spaces]
+      summary: Get the signed-in account profile
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Signed-in profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserProfile"
+    patch:
+      operationId: updateMyProfile
+      tags: [spaces]
+      summary: Update the signed-in account display name
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProfileUpdateInput"
+      responses:
+        "200":
+          description: Updated profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserProfile"
+  /spaces:
+    post:
+      operationId: createSpace
+      tags: [spaces]
+      summary: Create a Personal or Household space
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SpaceCreateInput"
+      responses:
+        "201":
+          description: Created space with the creator as owner
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Space"
+  /spaces/{id}/members:
+    get:
+      operationId: getSpaceMembers
+      tags: [spaces]
+      summary: List accepted members of a space
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Space member roster
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SpaceMembers"
+        "403":
+          description: The signed-in user is not a member of the requested space
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
   schemas:
+    UserProfile:
+      type: object
+      properties:
+        id:
+          type: string
+        email:
+          type: string
+        displayName:
+          type: string
+      required: [id, email, displayName]
+    ProfileUpdateInput:
+      type: object
+      properties:
+        displayName:
+          type: string
+          minLength: 1
+          maxLength: 60
+      required: [displayName]
+    Space:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        kind:
+          type: string
+          enum: [private, household]
+        timezone:
+          type: string
+        role:
+          type: string
+          enum: [owner, member]
+      required: [id, name, kind, timezone, role]
+    SpaceCreateInput:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 60
+        kind:
+          type: string
+          enum: [private, household]
+      required: [name, kind]
+    SpaceMember:
+      type: object
+      properties:
+        id:
+          type: string
+        displayName:
+          type: string
+        email:
+          type: string
+        role:
+          type: string
+          enum: [owner, member]
+      required: [id, displayName, email, role]
+    SpaceMembers:
+      type: object
+      properties:
+        space:
+          type: object
+          properties:
+            id:
+              type: string
+            name:
+              type: string
+            kind:
+              type: string
+              enum: [private, household]
+          required: [id, name, kind]
+        count:
+          type: number
+          format: double
+          minimum: 0
+        members:
+          type: array
+          items:
+            $ref: "#/components/schemas/SpaceMember"
+      required: [space, count, members]
     HealthStatus:
       type: object
       properties:
@@ -76,6 +240,14 @@ components:
         mimeType:
           type: string
           enum: [image/jpeg, image/png, image/webp]
+        provider:
+          type: string
+          enum: [local, gemini]
+          default: local
+        geminiApiKey:
+          type: string
+          maxLength: 512
+          description: Optional Gemini API key used only for this receipt recognition request; not stored by the server.
       required:
         - imageBase64
         - mimeType
@@ -84,12 +256,23 @@ components:
       properties:
         name:
           type: string
+        variant:
+          type: string
         quantity:
           type: number
         price:
           type: number
         category:
           type: string
+        packCount:
+          type: number
+          description: Known comparable count per pack, such as 12 or 18 eggs.
+        measureAmount:
+          type: number
+        measureUnit:
+          type: string
+        unitPriceAvailable:
+          type: boolean
       required:
         - name
         - quantity
@@ -102,6 +285,10 @@ components:
           type: string
         date:
           type: string
+          description: Purchase calendar date from the receipt, in YYYY-MM-DD form when readable.
+        purchaseTime:
+          type: string
+          description: Local purchase time in HH:mm when clearly readable; omit otherwise.
         total:
           type: number
         items:

@@ -20,12 +20,15 @@ function AppTabLayout() {
           elevation: 0,
           ...(isWeb ? { height: 84 } : {}),
         },
+        tabBarLabelStyle: { fontSize: 11, fontWeight: '600' },
+        tabBarItemStyle: { minHeight: 54, paddingVertical: 5 },
       }}
     >
       <Tabs.Screen name="index" options={{ title: 'Home', tabBarIcon: ({ color }) => <Feather name="home" size={20} color={color} /> }} />
       <Tabs.Screen name="receipts" options={{ title: 'Receipts', tabBarIcon: ({ color }) => <Feather name="file-text" size={20} color={color} /> }} />
       <Tabs.Screen name="summary" options={{ title: 'Summary', tabBarIcon: ({ color }) => <Feather name="pie-chart" size={20} color={color} /> }} />
       <Tabs.Screen name="grocery-lists" options={{ title: 'Lists', tabBarIcon: ({ color }) => <Feather name="check-square" size={20} color={color} /> }} />
+      <Tabs.Screen name="server" options={{ title: 'Server', tabBarIcon: ({ color }) => <Feather name="server" size={20} color={color} /> }} />
     </Tabs>
   );
 }

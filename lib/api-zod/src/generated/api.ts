@@ -22,23 +22,106 @@ export const HealthCheckResponse = zod.object({
  * @summary Recognize items from a receipt image
  */
 
-
+export const scanReceiptBodyProviderDefault = `local`;
 
 export const ScanReceiptBody = zod.object({
   "imageBase64": zod.string().min(1).describe('Base64-encoded receipt image without a data URL prefix'),
-  "mimeType": zod.enum(['image/jpeg', 'image/png', 'image/webp'])
+  "mimeType": zod.enum(['image/jpeg', 'image/png', 'image/webp']),
+  "provider": zod.enum(['local', 'gemini']).default(scanReceiptBodyProviderDefault),
+  "geminiApiKey": zod.string().max(512).optional()
 })
 
 export const ScanReceiptResponse = zod.object({
   "merchant": zod.string(),
-  "date": zod.string(),
+  "date": zod.string().describe('Purchase calendar date from the receipt, in YYYY-MM-DD form when readable.'),
+  "purchaseTime": zod.string().optional().describe('Local purchase time in HH:mm when clearly readable; omit otherwise.'),
   "total": zod.number(),
   "items": zod.array(zod.object({
   "name": zod.string(),
+  "variant": zod.string().optional(),
   "quantity": zod.number(),
   "price": zod.number(),
-  "category": zod.string()
+  "category": zod.string(),
+  "packCount": zod.number().optional().describe('Known comparable count per pack, such as 12 or 18 eggs.'),
+  "measureAmount": zod.number().optional(),
+  "measureUnit": zod.string().optional(),
+  "unitPriceAvailable": zod.boolean().optional()
 }))
 })
 
+
+/**
+ * @summary Get the signed-in account profile
+ */
+export const GetMyProfileResponse = zod.object({
+  "id": zod.string(),
+  "email": zod.string(),
+  "displayName": zod.string()
+})
+
+
+/**
+ * @summary Update the signed-in account display name
+ */
+export const updateMyProfileBodyDisplayNameMax = 60;
+
+
+
+export const UpdateMyProfileBody = zod.object({
+  "displayName": zod.string().min(1).max(updateMyProfileBodyDisplayNameMax)
+})
+
+export const UpdateMyProfileResponse = zod.object({
+  "id": zod.string(),
+  "email": zod.string(),
+  "displayName": zod.string()
+})
+
+
+/**
+ * @summary Create a Personal or Household space
+ */
+export const createSpaceBodyNameMax = 60;
+
+
+
+export const CreateSpaceBody = zod.object({
+  "name": zod.string().min(1).max(createSpaceBodyNameMax),
+  "kind": zod.enum(['private', 'household'])
+})
+
+export const CreateSpaceResponse = zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "kind": zod.enum(['private', 'household']),
+  "timezone": zod.string(),
+  "role": zod.enum(['owner', 'member'])
+})
+
+
+/**
+ * @summary List accepted members of a space
+ */
+export const GetSpaceMembersParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const getSpaceMembersResponseCountMin = 0;
+
+
+
+export const GetSpaceMembersResponse = zod.object({
+  "space": zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "kind": zod.enum(['private', 'household'])
+}),
+  "count": zod.number().min(getSpaceMembersResponseCountMin),
+  "members": zod.array(zod.object({
+  "id": zod.string(),
+  "displayName": zod.string(),
+  "email": zod.string(),
+  "role": zod.enum(['owner', 'member'])
+}))
+})
 
