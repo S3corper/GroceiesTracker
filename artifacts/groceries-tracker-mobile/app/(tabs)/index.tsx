@@ -8,8 +8,9 @@ import { router } from 'expo-router';
 export default function DashboardScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const { receipts, totalSpent, itemCount } = useGroceries();
+  const { receipts, totalSpent, itemCount, activeSpace } = useGroceries();
   const topInset = Platform.OS === 'web' ? Math.max(insets.top, 67) : insets.top;
+  const currentMonthLabel = new Intl.DateTimeFormat('en-US', { month: 'long', year: 'numeric', timeZone: activeSpace?.timezone ?? 'America/New_York' }).format(new Date());
 
   return (
     <ScrollView style={[styles.screen, { backgroundColor: colors.background }]} contentContainerStyle={{ paddingTop: topInset + 18, paddingBottom: insets.bottom + 30 }}>
@@ -22,7 +23,7 @@ export default function DashboardScreen() {
           <Feather name="camera" size={18} color={colors.foreground} />
         </Pressable>
       </View>
-      <View style={styles.titleRow}><View><Text style={[styles.title, { color: colors.foreground }]}>Dashboard</Text><Text style={[styles.subtitle, { color: colors.mutedForeground }]}>August 2026 spending at a glance</Text></View><View style={[styles.monthPill, { backgroundColor: colors.card }]}><Text style={[styles.monthText, { color: colors.foreground }]}>August</Text><Feather name="chevron-down" size={14} color={colors.mutedForeground} /></View></View>
+      <View style={styles.titleRow}><View style={styles.titleCopy}><Text style={[styles.title, { color: colors.foreground }]}>Dashboard</Text><Text style={[styles.subtitle, { color: colors.mutedForeground }]}>{currentMonthLabel} spending at a glance</Text></View><View style={[styles.monthPill, { backgroundColor: colors.card }]}><Text style={[styles.monthText, { color: colors.foreground }]}>{currentMonthLabel}</Text><Feather name="chevron-down" size={14} color={colors.mutedForeground} /></View></View>
       <View style={[styles.heroCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
         <View style={[styles.heroIcon, { backgroundColor: colors.accent }]}><Feather name="target" size={20} color={colors.primary} /></View>
         <View style={{ flex: 1 }}><Text style={[styles.cardTitle, { color: colors.foreground }]}>Keep your grocery spending visible.</Text><Text style={[styles.cardBody, { color: colors.mutedForeground }]}>Capture a receipt and we’ll turn it into a clear monthly summary.</Text></View>
@@ -49,10 +50,11 @@ const styles = StyleSheet.create({
   eyebrow: { marginTop: 6, fontSize: 9, letterSpacing: 1.2, fontWeight: '600' },
   iconButton: { width: 44, height: 44, borderRadius: 22, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
   titleRow: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: 10, marginBottom: 18 },
+  titleCopy: { flex: 1, minWidth: 0 },
   title: { fontSize: 27, fontWeight: '700', letterSpacing: -1 },
   subtitle: { fontSize: 13, marginTop: 4 },
-  monthPill: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 11, paddingVertical: 8, borderRadius: 18 },
-  monthText: { fontSize: 12, fontWeight: '600' },
+  monthPill: { minHeight: 40, maxWidth: '100%', flexShrink: 1, flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 20 },
+  monthText: { flexShrink: 1, fontSize: 12, fontWeight: '600' },
   heroCard: { flexDirection: 'row', alignItems: 'center', gap: 13, borderWidth: 1, borderRadius: 16, padding: 17, marginBottom: 14 },
   heroIcon: { width: 42, height: 42, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
   cardTitle: { fontSize: 14, fontWeight: '700' },

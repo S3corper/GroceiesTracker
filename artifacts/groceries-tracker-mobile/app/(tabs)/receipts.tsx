@@ -18,6 +18,7 @@ export default function ReceiptsScreen() {
   const insets = useSafeAreaInsets();
   const { receipts, addReceipt, updateReceiptDate, pendingDrafts, saveDraft, updateDraft, removeDraft, activeSpace } = useGroceries();
   const timezone = activeSpace?.timezone ?? 'America/New_York';
+  const currentMonthLabel = new Intl.DateTimeFormat('en-US', { month: 'long', year: 'numeric', timeZone: timezone }).format(new Date());
   const [isScanning, setIsScanning] = useState(false);
   const [scanProvider, setScanProvider] = useState<'local' | 'gemini'>('local');
   const [draft, setDraft] = useState<GroceryReceipt | null>(null);
@@ -124,7 +125,7 @@ export default function ReceiptsScreen() {
         })}
         <Pressable onPress={async () => { try { const { id, ...receipt } = draft; await addReceipt(receipt); removeDraft(id); setDraft(null); Alert.alert('Receipt saved', 'Receipt and item prices are now part of your history.'); } catch (error) { Alert.alert('Could not save receipt', error instanceof Error ? error.message : 'Connect to your household server and try again.'); } }} style={[styles.primaryButton, { backgroundColor: colors.primary, marginTop: 14 }]}><Text style={[styles.primaryButtonText, { color: colors.primaryForeground }]}>Save receipt</Text></Pressable><Pressable onPress={() => { removeDraft(draft.id); setDraft(null); }} style={[styles.secondaryButton, { backgroundColor: colors.secondary }]}><Text style={[styles.secondaryButtonText, { color: colors.foreground }]}>Discard draft</Text></Pressable>
       </View>}
-      <View style={styles.sectionHead}><Text style={[styles.sectionTitle, { color: colors.foreground }]}>Saved receipts</Text><Text style={[styles.sectionMeta, { color: colors.mutedForeground }]}>August 2026</Text></View>
+      <View style={styles.sectionHead}><Text style={[styles.sectionTitle, { color: colors.foreground }]}>Saved receipts</Text><Text style={[styles.sectionMeta, { color: colors.mutedForeground }]}>{receipts.length} total · {currentMonthLabel}</Text></View>
       <View style={[styles.listCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
         {receipts.length === 0 ? <View style={styles.empty}><View style={[styles.emptyIcon, { backgroundColor: colors.secondary }]}><Feather name="file-text" size={18} color={colors.mutedForeground} /></View><Text style={[styles.emptyTitle, { color: colors.foreground }]}>No receipts yet</Text><Text style={[styles.emptyBody, { color: colors.mutedForeground }]}>Add your first receipt to start tracking what you spend.</Text></View> : receipts.map((receipt) => {
           const edit = dateEdits[receipt.id] ?? { date: receipt.date, time: receipt.purchaseTime ?? '' };
@@ -138,18 +139,18 @@ export default function ReceiptsScreen() {
 const styles = StyleSheet.create({
   screen: { flex: 1, paddingHorizontal: 18 },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 22 },
-  eyebrow: { fontSize: 9, fontWeight: '700', letterSpacing: 1.3, marginBottom: 5 },
+  eyebrow: { fontSize: 10, fontWeight: '700', letterSpacing: 1.2, marginBottom: 5 },
   title: { fontSize: 28, fontWeight: '700', letterSpacing: -1 },
   subtitle: { fontSize: 13, marginTop: 4 },
   countPill: { alignItems: 'center', paddingHorizontal: 14, paddingVertical: 9, borderRadius: 14 },
   count: { fontSize: 18, fontWeight: '700' },
-  countLabel: { fontSize: 10, marginTop: 1 },
+  countLabel: { fontSize: 11, marginTop: 1 },
   scanCard: { alignItems: 'center', borderWidth: 1, borderRadius: 18, padding: 23, marginBottom: 28 },
   cameraCircle: { width: 60, height: 60, borderRadius: 22, alignItems: 'center', justifyContent: 'center', marginBottom: 13 },
   scanTitle: { fontSize: 18, fontWeight: '700' },
   scanBody: { textAlign: 'center', fontSize: 12, lineHeight: 18, marginTop: 6, marginBottom: 17, maxWidth: 300 },
   providerRow: { flexDirection: 'row', gap: 8, marginBottom: 14 },
-  providerChip: { borderRadius: 18, paddingVertical: 8, paddingHorizontal: 14 },
+  providerChip: { minHeight: 40, justifyContent: 'center', borderRadius: 20, paddingVertical: 8, paddingHorizontal: 15 },
   primaryButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, minWidth: 165, paddingHorizontal: 18, paddingVertical: 12, borderRadius: 24 },
   primaryButtonText: { fontSize: 13, fontWeight: '700' },
   secondaryButton: { flexDirection: 'row', alignItems: 'center', gap: 7, marginTop: 9, paddingHorizontal: 15, paddingVertical: 10, borderRadius: 22 },
@@ -159,9 +160,9 @@ const styles = StyleSheet.create({
   sectionMeta: { fontSize: 11 },
   listCard: { borderWidth: 1, borderRadius: 16, paddingHorizontal: 15 },
   reviewCard: { borderWidth: 1, borderRadius: 16, padding: 15, marginBottom: 24, gap: 8 },
-  fieldLabel: { fontSize: 10, fontWeight: '700', marginTop: 4 },
-  reviewInput: { borderWidth: 1, borderRadius: 8, minHeight: 40, paddingHorizontal: 10, fontSize: 13 },
-  reviewPair: { flexDirection: 'row', gap: 9 },
+  fieldLabel: { fontSize: 11, fontWeight: '700', marginTop: 4 },
+  reviewInput: { borderWidth: 1, borderRadius: 9, minHeight: 44, paddingHorizontal: 11, fontSize: 14 },
+  reviewPair: { flexDirection: 'row', flexWrap: 'wrap', gap: 9 },
   reviewItemCard: { borderWidth: 1, borderRadius: 13, padding: 12, gap: 9, marginTop: 7 },
   reviewItemNumber: { fontSize: 10, fontWeight: '700', letterSpacing: 0.7 },
   reviewFieldsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 9 },

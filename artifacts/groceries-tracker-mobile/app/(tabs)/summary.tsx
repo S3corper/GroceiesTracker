@@ -13,6 +13,7 @@ export default function SummaryScreen() {
   const insets = useSafeAreaInsets();
   const { receipts, totalSpent, itemCount, activeSpace } = useGroceries();
   const topInset = Platform.OS === 'web' ? Math.max(insets.top, 67) : insets.top;
+  const currentMonthLabel = new Intl.DateTimeFormat('en-US', { month: 'long', year: 'numeric', timeZone: activeSpace?.timezone ?? 'America/New_York' }).format(new Date());
   const categories = receipts.flatMap((receipt) => receipt.items).reduce<Record<string, number>>((totals, item) => {
     totals[item.category] = (totals[item.category] ?? 0) + item.price;
     return totals;
@@ -34,7 +35,7 @@ export default function SummaryScreen() {
     <ScrollView style={[styles.screen, { backgroundColor: colors.background }]} contentContainerStyle={{ paddingTop: topInset + 18, paddingBottom: insets.bottom + 30 }}>
       <Text style={[styles.eyebrow, { color: colors.mutedForeground }]}>A CLEARER MONTH</Text>
       <Text style={[styles.title, { color: colors.foreground }]}>Summary</Text>
-      <Text style={[styles.subtitle, { color: colors.mutedForeground }]}>August 2026 · built from recognized items</Text>
+      <Text style={[styles.subtitle, { color: colors.mutedForeground }]}>{currentMonthLabel} · built from recognized items</Text>
       <View style={styles.statGrid}><View style={[styles.bigStat, { backgroundColor: colors.card, borderColor: colors.border }]}><Text style={[styles.statLabel, { color: colors.mutedForeground }]}>TOTAL SPENT</Text><Text style={[styles.bigValue, { color: colors.foreground }]}>${totalSpent.toFixed(2)}</Text></View><View style={[styles.bigStat, { backgroundColor: colors.card, borderColor: colors.border }]}><Text style={[styles.statLabel, { color: colors.mutedForeground }]}>ITEMS</Text><Text style={[styles.bigValue, { color: colors.foreground }]}>{itemCount}</Text></View></View>
       <View style={styles.sectionHead}><Text style={[styles.sectionTitle, { color: colors.foreground }]}>Spending</Text><View style={styles.periodButtons}>{(['week', 'month'] as const).map((value) => <Pressable key={value} onPress={() => setPeriod(value)} style={[styles.productChip, { backgroundColor: period === value ? colors.primary : colors.secondary }]}><Text style={{ color: period === value ? colors.primaryForeground : colors.foreground, fontSize: 10, fontWeight: '600' }}>{value === 'week' ? 'Weekly' : 'Monthly'}</Text></Pressable>)}</View></View>
       <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>{periodRows.slice(-6).reverse().map((row) => <View key={row.periodStart} style={[styles.historyRow, { borderBottomColor: colors.border }]}><Text style={[styles.itemCategory, { color: colors.mutedForeground }]}>{row.periodStart}</Text><Text style={[styles.itemPrice, { color: colors.foreground }]}>${row.total.toFixed(2)}</Text></View>)}{periodRows.length === 0 && <Text style={[styles.emptyList, { color: colors.mutedForeground }]}>Weekly and monthly totals appear here by purchase date.</Text>}</View>
@@ -58,19 +59,19 @@ export default function SummaryScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, paddingHorizontal: 18 },
-  eyebrow: { fontSize: 9, fontWeight: '700', letterSpacing: 1.3, marginBottom: 5 },
+  eyebrow: { fontSize: 10, fontWeight: '700', letterSpacing: 1.2, marginBottom: 5 },
   title: { fontSize: 28, fontWeight: '700', letterSpacing: -1 },
   subtitle: { fontSize: 13, marginTop: 4, marginBottom: 22 },
   statGrid: { flexDirection: 'row', gap: 12, marginBottom: 28 },
   bigStat: { flex: 1, borderWidth: 1, borderRadius: 16, padding: 16 },
-  statLabel: { fontSize: 9, fontWeight: '700', letterSpacing: 0.8 },
+  statLabel: { fontSize: 10, fontWeight: '700', letterSpacing: 0.7 },
   bigValue: { fontSize: 26, fontWeight: '700', marginTop: 10, letterSpacing: -0.8 },
   sectionHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 11 },
   sectionTitle: { fontSize: 16, fontWeight: '700' },
   sectionMeta: { fontSize: 11 },
   card: { borderWidth: 1, borderRadius: 16, paddingHorizontal: 15, marginBottom: 25 },
   historyCard: { paddingBottom: 12 },
-  productChip: { paddingVertical: 8, paddingHorizontal: 10, borderRadius: 16 },
+  productChip: { minHeight: 40, justifyContent: 'center', paddingVertical: 8, paddingHorizontal: 12, borderRadius: 18 },
   periodButtons: { flexDirection: 'row', gap: 5 },
   historyRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 9, borderBottomWidth: 1 },
   empty: { alignItems: 'center', paddingVertical: 30, paddingHorizontal: 20 },

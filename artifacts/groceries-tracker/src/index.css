@@ -895,6 +895,12 @@ button, input, select, textarea { max-width: 100%; }
 .profile-email { font-size: 10px; }
 .field-label { font-size: 12px; }
 
+@media (max-width: 860px) {
+  .main { padding-inline: 24px; }
+  .dashboard-chart-grid { grid-template-columns: minmax(0, 1fr); }
+  .dashboard-chart-grid .chart-panel { min-height: 0; }
+}
+
 @media (max-width: 700px) {
   .sidebar { padding: 14px 15px 10px; }
   .app-shell, .main, .content-wrap { min-width: 0; }
