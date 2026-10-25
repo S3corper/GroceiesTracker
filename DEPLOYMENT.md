@@ -10,7 +10,7 @@ The hosted edition uses Supabase Free for accounts, PostgreSQL, private receipt 
 - Website: https://grocery-tracker-leo.genial-tetra-8373.chatgpt.site
 - Sites project: appgprj_6ade4ed533e4819190d1fb8ae1029bd6
 
-The public URL is a configured destination; see the deployment report for verified publication status.
+The public URL is deployed and browser-tested. See [DEPLOYMENT-VERIFICATION.md](DEPLOYMENT-VERIFICATION.md) for the checks and remaining native-device limitation.
 
 The publishable Supabase key is a public client identifier. Never put a service-role key, database password, or account token in a client bundle. Row-level security and the validated grocery_api RPC enforce household membership and owner operations. Authenticated SECURITY DEFINER warnings in the Supabase advisor are intentional for these narrowly scoped, tested RPCs; raw writes are denied. The private invitations, cleanup table, and profiles deliberately have no direct-access policies.
 

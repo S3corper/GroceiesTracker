@@ -182,6 +182,7 @@ try {
     "PASS: live sign-up/login, household permissions, Realtime across accounts, shared lists, photo upload/private download/deletion, summaries, unit prices, full photo backup/restore.",
   );
 } finally {
+  const cleanupErrors: unknown[] = [];
   for (const c of accounts.reverse()) {
     try {
       await api(
@@ -194,13 +195,18 @@ try {
       const { data: paths } = await c.rpc("grocery_cleanup");
       if (paths?.length) {
         const { error } = await c.storage.from("grocery-photos").remove(paths);
-        if (!error) await c.rpc("grocery_cleanup", { done: paths });
+        if (error) throw error;
+        const result = await c.rpc("grocery_cleanup", { done: paths });
+        if (result.error) throw result.error;
+        assert.deepEqual(result.data, [], 'Account deletion must remove actual storage objects');
       }
     } catch (error) {
+      cleanupErrors.push(error);
       console.error("QA cleanup failed:", error);
     }
     await c.auth.signOut();
     await c.removeAllChannels();
   }
   await cloudSignOut();
+  if (cleanupErrors.length) throw new AggregateError(cleanupErrors, 'QA account cleanup failed');
 }

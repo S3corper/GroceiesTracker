@@ -1,5 +1,5 @@
 import { PGlite } from "@electric-sql/pglite";
-import { readFile } from "node:fs/promises";
+import { readFile, readdir } from "node:fs/promises";
 import assert from "node:assert/strict";
 const db = new PGlite();
 await db.exec(`
@@ -14,15 +14,10 @@ alter table storage.objects enable row level security;
 grant select,insert,delete on storage.objects to authenticated;
 create publication supabase_realtime;
 `);
-await db.exec(
-  await readFile(
-    new URL(
-      "../supabase/migrations/202610250001_grocery_cloud.sql",
-      import.meta.url,
-    ),
-    "utf8",
-  ),
-);
+const migrations = new URL('../supabase/migrations/', import.meta.url);
+for (const file of (await readdir(migrations)).filter(file => file.endsWith('.sql')).sort()) {
+  await db.exec(await readFile(new URL(file, migrations), 'utf8'));
+}
 const alice = "00000000-0000-4000-8000-000000000001",
   bob = "00000000-0000-4000-8000-000000000002",
   eve = "00000000-0000-4000-8000-000000000003";
@@ -191,6 +186,7 @@ await assert.rejects(
   ),
 );
 await as(alice);
+await api('POST', '/api/receipts', {}, {spaceId: household.id, photoPath: photo, merchant: 'Cleanup test', total: 1, purchaseDate: '2026-10-25', items: []});
 await api("DELETE", "/api/auth/me", {}, { confirmation: "DELETE ACCOUNT" });
 await as(bob);
 assert.equal(
@@ -203,6 +199,10 @@ await api(
   {},
   { confirmation: household.name },
 );
+assert.equal((await db.query('select * from storage.objects')).rows.length, 1);
+assert.deepEqual((await db.query('select public.grocery_cleanup($1) as paths', [[photo]])).rows[0].paths, [photo]);
+await db.query('delete from storage.objects where name=$1', [photo]);
+assert.deepEqual((await db.query('select public.grocery_cleanup($1) as paths', [[photo]])).rows[0].paths, []);
 await db.exec("reset role; set role anon");
 await assert.rejects(api("GET", "/api/spaces"));
 await db.close();
