@@ -17,6 +17,10 @@ const DEFAULT_JSON_ACCEPT = "application/json, application/problem+json";
 
 let _baseUrl: string | null = null;
 let _authTokenGetter: AuthTokenGetter | null = null;
+let _transport: ((path: string, options: CustomFetchOptions) => Promise<unknown>) | null = null;
+
+/** Cloud mode keeps the existing web and native API contract. */
+export function setApiTransport(transport: typeof _transport): void { _transport = transport; }
 
 /**
  * Set a base URL that is prepended to every relative request URL
@@ -326,6 +330,8 @@ export async function customFetch<T = unknown>(
   input: RequestInfo | URL,
   options: CustomFetchOptions = {},
 ): Promise<T> {
+  const originalUrl = resolveUrl(input);
+  if (_transport && originalUrl.startsWith('/api/')) return await _transport(originalUrl, options) as T;
   input = applyBaseUrl(input);
   const { responseType = "auto", headers: headersInit, ...init } = options;
 

@@ -47,6 +47,7 @@ export default defineConfig({
   },
   root: path.resolve(import.meta.dirname),
   build: {
+    rollupOptions: { input: { main: path.resolve(import.meta.dirname, 'index.html'), ocr: path.resolve(import.meta.dirname, 'ocr.html') } },
     outDir: path.resolve(import.meta.dirname, 'dist/public'),
     emptyOutDir: true,
   },

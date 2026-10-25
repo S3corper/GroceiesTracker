@@ -1,6 +1,6 @@
 import { createContext, type ReactNode, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { customFetch, setAuthTokenGetter, setBaseUrl } from '@workspace/api-client-react';
+import { customFetch, setAuthTokenGetter, setBaseUrl, cloudEnabled, cloudSignOut, onCloudChange, refreshCloud } from '@workspace/api-client-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { categoryColor } from '@/lib/category-colors';
 import { ErrorBoundary } from '@/components/error-boundary';
@@ -50,6 +50,16 @@ import {
 } from 'wouter';
 
 const queryClient = new QueryClient();
+function useCloudRevision() {
+  const [revision,setRevision]=useState(0);
+  useEffect(()=>{if(!cloudEnabled()) return; return onCloudChange(()=>setRevision(value=>value+1));},[]);
+  return revision;
+}
+function invitationLink(token:string) {
+  const link=new URL(window.location.pathname,window.location.origin);link.searchParams.set('invite',token);
+  if(!cloudEnabled()) link.searchParams.set('api',localStorage.getItem('gt-host')??'http://localhost:3000');
+  return link.toString();
+}
 
 type ModalKind = 'receipt' | 'budget' | 'goal' | null;
 type ReceiptItem = { name: string; variant?: string; quantity: number; packCount?: number; measureAmount?: number; measureUnit?: string; price: number; category: string };
@@ -114,6 +124,8 @@ function todayInTimezone(timezone: string) {
 }
 
 function LocalAccess({ children }: { children: ReactNode }) {
+  const cloudRevision=useCloudRevision();
+  useEffect(()=>{if(!cloudEnabled())return;const refresh=()=>{if(document.visibilityState==='visible')refreshCloud();};window.addEventListener('focus',refresh);document.addEventListener('visibilitychange',refresh);return()=>{window.removeEventListener('focus',refresh);document.removeEventListener('visibilitychange',refresh);};},[]);
   const [host, setHost] = useState(() => new URLSearchParams(window.location.search).get('api') ?? localStorage.getItem('gt-host') ?? import.meta.env.VITE_API_URL ?? 'http://localhost:3000');
   const [token, setToken] = useState(() => localStorage.getItem('gt-token') ?? '');
   const [accountEmail, setAccountEmail] = useState(() => localStorage.getItem('gt-email') ?? '');
@@ -134,13 +146,13 @@ function LocalAccess({ children }: { children: ReactNode }) {
   useEffect(() => { document.documentElement.classList.toggle('dark', darkMode); localStorage.setItem('gt-dark-mode', String(darkMode)); }, [darkMode]);
   useEffect(() => {
     if (!token) return;
-    customFetch<LocalSpace[]>('/api/spaces').then((value) => { setSpaces(value); if (!value.some((space) => space.id === selectedId)) { const householdSpace = value.find((space) => space.kind === 'household') ?? value[0]; if (householdSpace) { setSelectedId(householdSpace.id); localStorage.setItem('gt-space', householdSpace.id); } } }).catch(() => { setError('Could not reach this host. Check the address and sign in again.'); localStorage.removeItem('gt-token'); setToken(''); });
-  }, [token]);
+    customFetch<LocalSpace[]>('/api/spaces').then((value) => { setSpaces(value); if (!value.some((space) => space.id === selectedId)) { const householdSpace = value.find((space) => space.kind === 'household') ?? value[0]; if (householdSpace) { setSelectedId(householdSpace.id); localStorage.setItem('gt-space', householdSpace.id); } } }).catch((cause) => { setError(cause instanceof Error ? cause.message : 'Could not sync your household.'); if (cause?.status===401) { localStorage.removeItem('gt-token'); setToken(''); } });
+  }, [token, cloudRevision]);
   useEffect(() => {
     const hasValidDisplayName = Boolean(accountDisplayName.trim()) && !['undefined', 'null'].includes(accountDisplayName.trim().toLowerCase());
-    if (!token || (accountEmail && hasValidDisplayName && profileLoaded)) return;
+    if (!token || (!cloudEnabled() && accountEmail && hasValidDisplayName && profileLoaded)) return;
     customFetch<{ email: string; displayName: string; profileImage?: string }>('/api/auth/me').then((account) => { setAccountEmail(account.email); setAccountDisplayName(account.displayName); setAccountProfileImage(account.profileImage ?? ''); setProfileLoaded(true); localStorage.setItem('gt-email', account.email); localStorage.setItem('gt-display-name', account.displayName); localStorage.setItem('gt-profile-image', account.profileImage ?? ''); }).catch(() => undefined);
-  }, [token, accountEmail, accountDisplayName, profileLoaded]);
+  }, [token, accountEmail, accountDisplayName, profileLoaded, cloudRevision]);
   const authenticate = async (event: React.FormEvent) => {
     event.preventDefault(); setBusy(true); setError('');
     try {
@@ -151,11 +163,11 @@ function LocalAccess({ children }: { children: ReactNode }) {
       const rememberedSpaceId = localStorage.getItem('gt-space');
       const rememberedSpace = nextSpaces.find((entry) => entry.id === rememberedSpaceId);
       const defaultSpace = nextSpaces.find((entry) => entry.kind === 'household') ?? nextSpaces[0];
-      const preferredSpace = invite ? (nextSpaces.find((entry) => entry.kind === 'household' && entry.id !== rememberedSpaceId) ?? defaultSpace) : (rememberedSpace ?? defaultSpace);
+      const preferredSpace = invite ? (nextSpaces[0] ?? defaultSpace) : (rememberedSpace ?? defaultSpace);
       localStorage.setItem('gt-token', result.token); localStorage.setItem('gt-email', result.user.email); localStorage.setItem('gt-display-name', result.user.displayName); localStorage.setItem('gt-profile-image', result.user.profileImage ?? ''); setAccountEmail(result.user.email); setAccountDisplayName(result.user.displayName); setAccountProfileImage(result.user.profileImage ?? ''); setProfileLoaded(true); setToken(result.token); setSpaces(nextSpaces); if (preferredSpace) { setSelectedId(preferredSpace.id); localStorage.setItem('gt-space', preferredSpace.id); }
     } catch (cause) { setError(cause instanceof Error ? cause.message : 'Could not sign in to this host.'); } finally { setBusy(false); }
   };
-  const signOut = () => { localStorage.removeItem('gt-token'); localStorage.removeItem('gt-email'); localStorage.removeItem('gt-display-name'); localStorage.removeItem('gt-profile-icon'); localStorage.removeItem('gt-profile-image'); setToken(''); setAccountEmail(''); setAccountDisplayName(''); setAccountProfileImage(''); setProfileLoaded(false); setSpaces([]); };
+  const signOut = () => { if(cloudEnabled()) void cloudSignOut(); localStorage.removeItem('gt-token'); localStorage.removeItem('gt-email'); localStorage.removeItem('gt-display-name'); localStorage.removeItem('gt-profile-icon'); localStorage.removeItem('gt-profile-image'); setToken(''); setAccountEmail(''); setAccountDisplayName(''); setAccountProfileImage(''); setProfileLoaded(false); setSpaces([]); };
   const updateDisplayName = (name: string) => { setAccountDisplayName(name); localStorage.setItem('gt-display-name', name); };
   const updateProfileImage = (image: string) => { setAccountProfileImage(image); localStorage.setItem('gt-profile-image', image); };
   const removeSpace = (id: string) => {
@@ -168,7 +180,7 @@ function LocalAccess({ children }: { children: ReactNode }) {
     }
   };
   const space = spaces.find((entry) => entry.id === selectedId) ?? spaces.find((entry) => entry.kind === 'household') ?? null;
-  if (!token) return <main className="local-access"><form className="local-access-card" onSubmit={authenticate}><div className="brand"><span className="brand-mark">G</span><span>GroceriesTracker</span></div><h1>{register ? 'Create your local household' : 'Connect to your grocery server'}</h1><p>Keep receipts on your own computer or phone. Other devices can connect over your home Wi-Fi.</p><label>Server address<input className="field-input" value={host} onChange={(e) => setHost(e.target.value)} placeholder="http://192.168.1.20:3000" /></label>{register && <label>Your name<input className="field-input" required maxLength={60} value={displayName} onChange={(e) => setDisplayName(e.target.value)} placeholder="How your household knows you" /></label>}<label>Email<input className="field-input" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} /></label><label>Password<input className="field-input" type="password" required minLength={10} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="At least 10 characters" /></label>{register && <label>Household name<input className="field-input" value={household} onChange={(e) => setHousehold(e.target.value)} /></label>}{error && <p className="local-error">{error}</p>}<button className="primary-button" disabled={busy}>{busy ? 'Connecting…' : register ? 'Create account' : 'Sign in'}</button><button type="button" className="text-button" onClick={() => { setRegister(!register); setError(''); }}>{register ? 'I already have an account' : 'First time? Create the household owner account'}</button></form></main>;
+  if (!token) return <main className="local-access"><form className="local-access-card" onSubmit={authenticate}><div className="brand"><span className="brand-mark">G</span><span>GroceriesTracker</span></div><h1>{register ? 'Create your household' : 'Welcome to Grocery Tracker'}</h1><p>{cloudEnabled() ? 'Your groceries, shared with your household and synced across devices.' : 'Connect to your household server.'}</p>{!cloudEnabled() && <label>Server address<input className="field-input" value={host} onChange={(e) => setHost(e.target.value)} placeholder="http://192.168.1.20:3000" /></label>}{register && <label>Your name<input className="field-input" required maxLength={60} value={displayName} onChange={(e) => setDisplayName(e.target.value)} placeholder="How your household knows you" /></label>}<label>Email<input className="field-input" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} /></label><label>Password<input className="field-input" type="password" required minLength={10} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="At least 10 characters" /></label>{register && <label>Household name<input className="field-input" value={household} onChange={(e) => setHousehold(e.target.value)} /></label>}{error && <p className="local-error">{error}</p>}<button className="primary-button" disabled={busy}>{busy ? 'Connecting…' : register ? 'Create account' : 'Sign in'}</button><button type="button" className="text-button" onClick={() => { setRegister(!register); setError(''); }}>{register ? 'I already have an account' : 'First time? Create the household owner account'}</button></form></main>;
   const safeDisplayName = accountDisplayName.trim() && !['undefined', 'null'].includes(accountDisplayName.trim().toLowerCase()) ? accountDisplayName : accountEmail.split('@')[0] || 'Grocery member';
   return <SessionContext.Provider value={{ token, email: accountEmail, displayName: safeDisplayName, profileImage: accountProfileImage, darkMode, setDarkMode, space, spaces, setSpace: (next) => { setSelectedId(next.id); setSpaces((current) => current.some((entry) => entry.id === next.id) ? current.map((entry) => entry.id === next.id ? { ...entry, ...next } : entry) : [...current, next]); localStorage.setItem('gt-space', next.id); }, removeSpace, setDisplayName: updateDisplayName, setProfileImage: updateProfileImage, signOut }}>{children}</SessionContext.Provider>;
 }
@@ -326,18 +338,19 @@ function GroupProfileSection({ space, email, onToast }: { space: LocalSpace | nu
   const [loading, setLoading] = useState(false);
   const [inviteLink, setInviteLink] = useState('');
   const [refreshKey, setRefreshKey] = useState(0);
+  const cloudRevision=useCloudRevision();
   useEffect(() => {
     if (!space) { setMembers([]); return; }
     let active = true; setLoading(true);
     customFetch<{ members: SpaceMember[] }>(`/api/spaces/${encodeURIComponent(space.id)}/members`).then((result) => { if (active) setMembers(result.members); }).catch(() => { if (active) onToast('Could not load members for this space'); }).finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
-  }, [space?.id, refreshKey]);
+  }, [space?.id, refreshKey, cloudRevision]);
   const createInvite = async () => {
     if (!space) return;
     try {
       const invitation = await customFetch<{ token: string }>(`/api/spaces/${space.id}/invitations`, { method: 'POST', body: JSON.stringify({}) });
       const apiHost = localStorage.getItem('gt-host') ?? `http://${window.location.hostname}:3000`;
-      const link = `${window.location.origin}${window.location.pathname}?invite=${invitation.token}&api=${encodeURIComponent(apiHost)}`;
+      const link = invitationLink(invitation.token);
       setInviteLink(link); await navigator.clipboard?.writeText(link).catch(() => undefined); onToast('Household invitation link copied');
     } catch (cause) { onToast(cause instanceof Error ? cause.message : 'Only a household owner can invite members'); }
   };
@@ -609,22 +622,21 @@ function ReceiptUploadPage({ isScanning, onFile, onManual, onClose, provider, se
   const uploadRef = useRef<HTMLInputElement>(null);
   const cameraRef = useRef<HTMLInputElement>(null);
   const [dragging, setDragging] = useState(false);
-  return <section className="receipt-upload-page"><div className="upload-page-heading"><button className="back-link" onClick={onClose}>‹ Back to receipts</button><div className="upload-heading-row"><div><div className="section-kicker">CAPTURE YOUR SHOP</div><h1>Add New Receipt</h1><p>Take a clear photo or upload a receipt image. We’ll turn it into an editable grocery record.</p></div><label className="upload-ocr-setting">Recognition<select value={provider} onChange={(event) => setProvider(event.target.value as 'local' | 'gemini')}><option value="local">Offline OCR</option><option value="gemini">Gemini · sends photo to Google</option></select><small>{provider === 'gemini' ? hasGeminiKey ? 'Gemini key is set for this browser.' : 'Add your key in Settings to use Gemini.' : 'Runs on this host without sending the photo to a cloud service.'}</small></label></div></div><div className={`receipt-dropzone ${dragging ? 'dragging' : ''}`} onDragOver={(event) => { event.preventDefault(); setDragging(true); }} onDragLeave={() => setDragging(false)} onDrop={(event) => { event.preventDefault(); setDragging(false); const file = event.dataTransfer.files[0]; if (file) onFile(file); }}><div className="upload-icon"><FileText size={28}/></div><h2>{isScanning ? 'Reading your receipt…' : 'Upload a receipt image'}</h2><p>{isScanning ? provider === 'gemini' ? 'Gemini is extracting store, date, items, and prices.' : 'Offline OCR is extracting store, date, items, and prices.' : 'Drag and drop a receipt image here, or choose how you want to add it.'}</p><div className="upload-actions"><button className="primary-button" onClick={() => cameraRef.current?.click()} disabled={isScanning}><ReceiptText size={16}/> Take a photo</button><button className="secondary-button" onClick={() => uploadRef.current?.click()} disabled={isScanning}><Plus size={16}/> Upload an image</button></div><small>JPG, PNG, or WEBP · Clear, well-lit photos work best</small><input ref={cameraRef} hidden type="file" accept="image/*" capture="environment" onChange={(event) => { const file = event.target.files?.[0]; event.target.value = ''; if (file) onFile(file); }}/><input ref={uploadRef} hidden type="file" accept="image/*" onChange={(event) => { const file = event.target.files?.[0]; event.target.value = ''; if (file) onFile(file); }}/></div><div className="manual-entry-line">No receipt image? <button className="text-button" onClick={onManual}>Enter receipt manually</button></div><div className="upload-privacy-note"><span className="status-dot"/> Offline OCR keeps your receipt photo on this local server. Gemini is optional and sends the image to Google.</div></section>;
+  return <section className="receipt-upload-page"><div className="upload-page-heading"><button className="back-link" onClick={onClose}>‹ Back to receipts</button><div className="upload-heading-row"><div><div className="section-kicker">CAPTURE YOUR SHOP</div><h1>Add New Receipt</h1><p>Take a clear photo or upload a receipt image. We’ll turn it into an editable grocery record.</p></div><label className="upload-ocr-setting">Recognition<select value={provider} onChange={(event) => setProvider(event.target.value as 'local' | 'gemini')}><option value="local">Offline OCR</option>{!cloudEnabled() && <option value="gemini">Gemini · sends photo to Google</option>}</select><small>{provider === 'gemini' ? hasGeminiKey ? 'Gemini key is set for this browser.' : 'Add your key in Settings to use Gemini.' : cloudEnabled() ? 'Free recognition runs on this device.' : 'Runs on this host without sending the photo to a cloud service.'}</small></label></div></div><div className={`receipt-dropzone ${dragging ? 'dragging' : ''}`} onDragOver={(event) => { event.preventDefault(); setDragging(true); }} onDragLeave={() => setDragging(false)} onDrop={(event) => { event.preventDefault(); setDragging(false); const file = event.dataTransfer.files[0]; if (file) onFile(file); }}><div className="upload-icon"><FileText size={28}/></div><h2>{isScanning ? 'Reading your receipt…' : 'Upload a receipt image'}</h2><p>{isScanning ? provider === 'gemini' ? 'Gemini is extracting store, date, items, and prices.' : 'Offline OCR is extracting store, date, items, and prices.' : 'Drag and drop a receipt image here, or choose how you want to add it.'}</p><div className="upload-actions"><button className="primary-button" onClick={() => cameraRef.current?.click()} disabled={isScanning}><ReceiptText size={16}/> Take a photo</button><button className="secondary-button" onClick={() => uploadRef.current?.click()} disabled={isScanning}><Plus size={16}/> Upload an image</button></div><small>JPG, PNG, or WEBP · Clear, well-lit photos work best</small><input ref={cameraRef} hidden type="file" accept="image/*" capture="environment" onChange={(event) => { const file = event.target.files?.[0]; event.target.value = ''; if (file) onFile(file); }}/><input ref={uploadRef} hidden type="file" accept="image/*" onChange={(event) => { const file = event.target.files?.[0]; event.target.value = ''; if (file) onFile(file); }}/></div><div className="manual-entry-line">No receipt image? <button className="text-button" onClick={onManual}>Enter receipt manually</button></div><div className="upload-privacy-note"><span className="status-dot"/> {cloudEnabled() ? 'Recognition runs on this device. Saving a receipt syncs it privately with your household.' : 'Offline OCR keeps your receipt photo on this local server. Gemini is optional and sends the image to Google.'}</div></section>;
 }
 
 function GroceryListsSection() {
-  const [item, setItem] = useState('');
-  const [items, setItems] = useState<string[]>([]);
-  const addItem = () => { if (item.trim()) { setItems((current) => [...current, item.trim()]); setItem(''); } };
-  return (
-    <section className="section-view">
-      <div className="section-view-head"><div><div className="section-kicker">PLAN THE NEXT SHOP</div><h2>Grocery Lists</h2><p>Keep the next trip simple and focused.</p></div><button className="primary-button" onClick={addItem}><Plus size={12} /> Add item</button></div>
-      <article className="panel section-panel list-section-panel"><div className="list-section-title"><div className="empty-icon"><ListChecks size={14} /></div><div><div className="panel-heading">Next grocery trip</div><div className="panel-subtitle">{items.length} item{items.length === 1 ? '' : 's'}</div></div></div><div className="list-input-row"><input value={item} onChange={(event) => setItem(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter') addItem(); }} placeholder="Add an item" /><button className="primary-button" onClick={addItem}><Plus size={12} /></button></div>{items.length ? <div className="item-list">{items.map((name, index) => <div className="item-row" key={`${name}-${index}`}><span><CircleDashed size={13} />{name}</span><button className="icon-text-button" onClick={() => setItems((current) => current.filter((_, itemIndex) => itemIndex !== index))}><X size={12} /></button></div>)}</div> : <div className="list-empty"><ListChecks size={24} /><span>Your list is ready for the next shop.</span></div>}</article>
-    </section>
-  );
+  const {space}=useSession(); const cloudRevision=useCloudRevision();
+  const [item,setItem]=useState(''); const [items,setItems]=useState<Array<{id:string;name:string}>>([]);const [error,setError]=useState('');
+  useEffect(()=>{setItems([]);},[space?.id]);
+  useEffect(()=>{if(!cloudEnabled()||!space)return;let active=true;customFetch<Array<{id:string;name:string}>>(`/api/spaces/${space.id}/list`).then(rows=>{if(active)setItems(rows);}).catch(()=>setError('Could not sync your list.'));return()=>{active=false;};},[space?.id,cloudRevision]);
+  const addItem=async()=>{const name=item.trim();if(!name||!space)return;setError('');try{if(cloudEnabled())setItems(await customFetch(`/api/spaces/${space.id}/list`,{method:'POST',body:JSON.stringify({name})}));else setItems(current=>[...current,{id:crypto.randomUUID(),name}]);setItem('');}catch{setError('Could not add item. Please retry.');}};
+  const remove=async(id:string)=>{try{if(cloudEnabled()&&space)setItems(await customFetch(`/api/spaces/${space.id}/list`,{method:'DELETE',body:JSON.stringify({id})}));else setItems(current=>current.filter(entry=>entry.id!==id));}catch{setError('Could not remove item. Please retry.');}};
+  return <section className="section-view"><div className="section-view-head"><div><div className="section-kicker">PLAN THE NEXT SHOP</div><h2>Grocery Lists</h2><p>Keep the next trip simple and focused.</p></div><button className="primary-button" onClick={addItem}><Plus size={12}/> Add item</button></div><article className="panel section-panel list-section-panel"><div className="list-section-title"><div className="empty-icon"><ListChecks size={14}/></div><div><div className="panel-heading">Next grocery trip</div><div className="panel-subtitle">{items.length} items</div></div></div><div className="list-input-row"><input value={item} onChange={event=>setItem(event.target.value)} onKeyDown={event=>{if(event.key==='Enter')void addItem();}} placeholder="Add an item"/><button className="primary-button" onClick={addItem}><Plus size={12}/></button></div>{error&&<p role="alert">{error}</p>}{items.length?<div className="item-list">{items.map(entry=><div className="item-row" key={entry.id}><span><CircleDashed size={13}/>{entry.name}</span><button aria-label={`Delete ${entry.name}`} className="icon-text-button" onClick={()=>void remove(entry.id)}><X size={12}/></button></div>)}</div>:<div className="list-empty"><ListChecks size={24}/><span>Your list is ready for the next shop.</span></div>}</article></section>;
 }
 
 function Dashboard() {
+  const cloudRevision=useCloudRevision();
   const { token, email, displayName, profileImage, darkMode, setDarkMode, setDisplayName, setProfileImage, space, spaces, signOut, setSpace, removeSpace } = useSession();
   const [activeSection, setActiveSection] = useState('Dashboard');
   const [month, setMonth] = useState('All time');
@@ -639,6 +651,7 @@ function Dashboard() {
   const [budget, setBudget] = useState<number | null>(null);
   const [goal, setGoal] = useState<{ name: string; amount: number } | null>(null);
   const [receipts, setReceipts] = useState<Receipt[]>([]);
+  useEffect(()=>{setReceipts([]);setBudget(null);setGoal(null);},[space?.id]);
   const [showAll, setShowAll] = useState(false);
   const [toast, setToast] = useState('');
   const [isScanning, setIsScanning] = useState(false);
@@ -676,11 +689,15 @@ function Dashboard() {
   useEffect(() => {
     if (!space) return;
     setTimezone(space.timezone);
-    setReceipts([]);
+    if(!cloudEnabled()) setReceipts([]);
     let active = true;
     customFetch<any[]>(`/api/receipts?spaceId=${encodeURIComponent(space.id)}`).then((rows) => { if (active) setReceipts(rows.map((row) => ({ id: row.id, store: row.merchant, amount: row.total, date: row.purchaseDate, time: row.purchaseTime, timezone: row.timezone, purchaseInstant: row.purchaseInstant, imageUrl: row.photoUrl, items: row.items.map((item: any) => ({ name: item.name, variant: item.variant, quantity: item.quantity ?? 1, packCount: item.packCount ?? undefined, measureAmount: item.measureAmount ?? undefined, measureUnit: item.measureUnit ?? undefined, price: item.linePrice, category: item.category })) }))); }).catch(() => { if (active) showToast('Unable to load receipts from this host'); });
     return () => { active = false; };
-  }, [space?.id, token]);
+  }, [space?.id, token, cloudRevision]);
+  useEffect(()=>{if(!cloudEnabled() || !space)return;let active=true;
+    customFetch<{budget:number|null;goal:{name:string;amount:number}|null}>(`/api/spaces/${space.id}/settings`).then(data=>{if(active){setBudget(data.budget);setGoal(data.goal);}}).catch(()=>showToast('Could not sync household settings'));
+    return()=>{active=false;};
+  },[space?.id,cloudRevision]);
   useEffect(() => setProfileNameDraft(displayName), [displayName]);
   useEffect(() => setProfileImageDraft(profileImage), [profileImage]);
   useEffect(() => setWorkspaceNameDraft(space?.name ?? ''), [space?.id, space?.name]);
@@ -721,7 +738,7 @@ function Dashboard() {
       const image = receipt.imageUrl?.split(',')[1];
       const saved = await customFetch<any>('/api/receipts', { method: 'POST', body: JSON.stringify({ spaceId: destination.id, merchant: receipt.store, total: receipt.amount, purchaseDate: receipt.date, purchaseTime: receipt.time ?? null, timezone: receipt.time ? destination.timezone : null, imageBase64: image, mimeType: receipt.imageUrl?.startsWith('data:image/png') ? 'image/png' : 'image/jpeg', items: receipt.items.map((item) => ({ name: item.name, variant: item.variant, category: item.category, linePrice: item.price, quantity: item.quantity, packCount: item.packCount, measureAmount: item.measureAmount, measureUnit: item.measureUnit })) }) });
       if (space?.id !== destination.id) setSpace(destination);
-      else setReceipts((current) => [{ id: saved.id, spaceId: destination.id, store: saved.merchant, amount: saved.total, date: saved.purchaseDate, time: saved.purchaseTime, timezone: saved.timezone, purchaseInstant: saved.purchaseInstant, imageUrl: receipt.imageUrl, items: saved.items.map((item: any) => ({ name: item.name, variant: item.variant, quantity: item.quantity ?? 1, packCount: item.packCount, measureAmount: item.measureAmount, measureUnit: item.measureUnit, price: item.linePrice, category: item.category })) }, ...current]);
+      else setReceipts((current) => [{ id: saved.id, spaceId: destination.id, store: saved.merchant, amount: saved.total, date: saved.purchaseDate, time: saved.purchaseTime, timezone: saved.timezone, purchaseInstant: saved.purchaseInstant, imageUrl: receipt.imageUrl, items: saved.items.map((item: any) => ({ name: item.name, variant: item.variant, quantity: item.quantity ?? 1, packCount: item.packCount, measureAmount: item.measureAmount, measureUnit: item.measureUnit, price: item.linePrice, category: item.category })) }, ...current.filter(entry=>entry.id!==saved.id)]);
     } catch (cause) { showToast(cause instanceof Error ? cause.message : 'Could not save receipt on this host'); return; }
     setModal(null);
     setDraftReceipt(null);
@@ -855,13 +872,15 @@ function Dashboard() {
     }
   };
 
-  const saveBudget = (amount: number) => {
+  const saveBudget = async (amount: number) => {
+    if(cloudEnabled() && space) try { await customFetch(`/api/spaces/${space.id}/settings`,{method:"PATCH",body:JSON.stringify({budget:amount})}); } catch { showToast("Could not save budget; please retry.");return; }
     setBudget(amount);
     setModal(null);
     showToast(`Budget set to $${amount.toFixed(0)} for ${currentMonthName}`);
   };
 
-  const saveGoal = (newGoal: { name: string; amount: number }) => {
+  const saveGoal = async (newGoal: { name: string; amount: number }) => {
+    if(cloudEnabled() && space) try { await customFetch(`/api/spaces/${space.id}/settings`,{method:"PATCH",body:JSON.stringify({goal:newGoal})}); } catch { showToast("Could not save goal; please retry.");return; }
     setGoal(newGoal);
     setModal(null);
     showToast('Your first goal is ready');
@@ -959,12 +978,12 @@ function Dashboard() {
               <div className="settings-divider"/>
               <div className="theme-setting-row"><div><strong>Appearance</strong><p>Choose a light or dark look for this device.</p></div><button className="secondary-button theme-toggle" aria-pressed={darkMode} onClick={() => setDarkMode(!darkMode)}>{darkMode ? <Sun size={16}/> : <Moon size={16}/>} {darkMode ? 'Switch to light mode' : 'Switch to dark mode'}</button></div>
               <div className="settings-divider"/>
-              <div className="gemini-key-setting"><label className="field-label">Gemini API key<input className="field-input" type="password" autoComplete="new-password" spellCheck={false} value={geminiKeyDraft} onChange={(event) => { setGeminiKeyDraft(event.target.value); setGeminiKeyStatus(''); }} placeholder="Paste your Gemini API key" /></label><p>Stored only in this browser. It is sent to Google only when you select Gemini for a receipt scan.</p><div className="gemini-key-actions"><button type="button" className="secondary-button" onClick={testGeminiApiKey} disabled={!geminiKeyDraft.trim() || geminiKeyTesting}>{geminiKeyTesting ? 'Testing…' : 'Test key'}</button><button type="button" className="primary-button" onClick={saveGeminiApiKey} disabled={!geminiKeyDraft.trim() || geminiKeyDraft.trim() === geminiApiKey}>Save key</button>{geminiApiKey && <button type="button" className="text-button" onClick={() => { setGeminiApiKey(''); setGeminiKeyDraft(''); localStorage.removeItem('gt-gemini-api-key'); setGeminiKeyStatus('Gemini key removed from this device.'); }}>Remove key</button>}</div>{geminiKeyStatus && <div className={`gemini-key-status ${geminiKeyStatus.startsWith('Key works') || geminiKeyStatus.startsWith('Saved') ? 'success' : ''}`} role="status">{geminiKeyStatus}</div>}</div>
+              {!cloudEnabled() && <div className="gemini-key-setting"><label className="field-label">Gemini API key<input className="field-input" type="password" autoComplete="new-password" spellCheck={false} value={geminiKeyDraft} onChange={(event) => { setGeminiKeyDraft(event.target.value); setGeminiKeyStatus(''); }} placeholder="Paste your Gemini API key" /></label><p>Stored only in this browser. It is sent to Google only when you select Gemini for a receipt scan.</p><div className="gemini-key-actions"><button type="button" className="secondary-button" onClick={testGeminiApiKey} disabled={!geminiKeyDraft.trim() || geminiKeyTesting}>{geminiKeyTesting ? 'Testing…' : 'Test key'}</button><button type="button" className="primary-button" onClick={saveGeminiApiKey} disabled={!geminiKeyDraft.trim() || geminiKeyDraft.trim() === geminiApiKey}>Save key</button>{geminiApiKey && <button type="button" className="text-button" onClick={() => { setGeminiApiKey(''); setGeminiKeyDraft(''); localStorage.removeItem('gt-gemini-api-key'); setGeminiKeyStatus('Gemini key removed from this device.'); }}>Remove key</button>}</div>{geminiKeyStatus && <div className={`gemini-key-status ${geminiKeyStatus.startsWith('Key works') || geminiKeyStatus.startsWith('Saved') ? 'success' : ''}`} role="status">{geminiKeyStatus}</div>}</div>}
               <div className="settings-divider"/>
               <label className="field-label">Workspace timezone<input className="field-input" value={timezone} onChange={(e) => setTimezone(e.target.value)} placeholder="America/New_York" /></label>
               <button className="primary-button" onClick={async () => { if (!space) return; try { const updated = await customFetch<LocalSpace>(`/api/spaces/${space.id}`, { method: 'PATCH', body: JSON.stringify({ timezone }) }); setSpace(updated); showToast('Workspace timezone updated'); } catch { showToast('Could not update timezone'); } }}>Save timezone</button>
               <div className="settings-divider"/>
-              {space?.kind === 'household' && <><button className="secondary-button" onClick={async () => { if (!space) return; try { const invitation = await customFetch<{ token: string }>(`/api/spaces/${space.id}/invitations`, { method: 'POST', body: JSON.stringify({}) }); const apiHost = localStorage.getItem('gt-host') ?? `http://${window.location.hostname}:3000`; const invitationLink = `${window.location.origin}${window.location.pathname}?invite=${invitation.token}&api=${encodeURIComponent(apiHost)}`; setInviteText(invitationLink); navigator.clipboard?.writeText(invitationLink).catch(() => undefined); } catch { showToast('Could not create an invitation'); } }}>Create household invitation + pairing QR</button>{inviteText && <div className="invite-pairing"><QRCodeSVG value={inviteText} size={132} includeMargin/><p className="panel-subtitle">Scan to open the household and accept this 7-day invitation. If the QR scan is unavailable, use this link: <a href={inviteText}>{inviteText}</a></p></div>}</>}
+              {space?.kind === 'household' && <><button className="secondary-button" onClick={async () => { if (!space) return; try { const invitation = await customFetch<{ token: string }>(`/api/spaces/${space.id}/invitations`, { method: 'POST', body: JSON.stringify({}) }); const apiHost = localStorage.getItem('gt-host') ?? `http://${window.location.hostname}:3000`; const link = invitationLink(invitation.token); setInviteText(link); navigator.clipboard?.writeText(link).catch(() => undefined); } catch { showToast('Could not create an invitation'); } }}>Create household invitation + pairing QR</button>{inviteText && <div className="invite-pairing"><QRCodeSVG value={inviteText} size={132} includeMargin/><p className="panel-subtitle">Scan to open the household and accept this 7-day invitation. If the QR scan is unavailable, use this link: <a href={inviteText}>{inviteText}</a></p></div>}</>}
               <div className="settings-divider"/>
               <div className="backup-actions"><button className="secondary-button" onClick={exportBackup}>Export backup</button><button className="secondary-button" onClick={() => backupInputRef.current?.click()}>Restore backup</button><input ref={backupInputRef} type="file" accept="application/json,.json" hidden onChange={restoreBackup}/></div>
               <div className="settings-divider"/>

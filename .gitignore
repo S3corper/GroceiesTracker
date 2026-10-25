@@ -48,3 +48,6 @@ Thumbs.db
 # Replit
 .cache/
 .local/
+**/.env
+**/.env.local
+/artifacts/groceries-tracker/public/ocr/

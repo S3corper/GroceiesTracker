@@ -1,30 +1,58 @@
-# Public hosting
+# Free cloud deployment
 
-The web frontend can be published through Sites. The existing Node API runs on Render with a persistent disk so its SQLite database and receipt photos survive restarts.
+The hosted edition uses Supabase Free for accounts, PostgreSQL, private receipt photos, and live household updates. The frontend is static and published through Sites; the same output is compatible with Cloudflare Pages. No Render, Railway, paid AI API, domain purchase, or paid native build service is required.
 
-## Render API
+## Live configuration
 
-Deploy the root `render.yaml` Blueprint from this repository. It defines one Node 24 web service in Virginia, the smallest paid compute plan, a 1 GB disk mounted at `/var/data`, and the `/api/healthz` health check. The database and photos are stored under `/var/data/groceries`. Automatic deploys are disabled so source changes can be tested before publication.
+- Supabase organization: Grocery Tracker (Free)
+- Project: iwadadmqtvvihprezfkk, us-east-1
+- API: https://iwadadmqtvvihprezfkk.supabase.co
+- Website: https://grocery-tracker-leo.genial-tetra-8373.chatgpt.site
+- Sites project: appgprj_6ade4ed533e4819190d1fb8ae1029bd6
 
-The selected configuration starts at approximately $7.25/month before additional usage or taxes. Verify the current estimate in Render before applying. Receipt scanning capacity depends on image size and concurrency; inspect memory use before increasing traffic. A disk-backed service briefly stops during redeployment.
+The public URL is a configured destination; see the deployment report for verified publication status.
 
-No Gemini key is required for local OCR. Users can continue supplying their own Gemini key for optional cloud recognition. No existing local accounts or receipts are uploaded by this deployment; the hosted server starts with an empty database. Use the application's backup/export and restore workflow to move selected household records.
+The publishable Supabase key is a public client identifier. Never put a service-role key, database password, or account token in a client bundle. Row-level security and the validated grocery_api RPC enforce household membership and owner operations. Authenticated SECURITY DEFINER warnings in the Supabase advisor are intentional for these narrowly scoped, tested RPCs; raw writes are denied. The private invitations, cleanup table, and profiles deliberately have no direct-access policies.
 
-## Sites frontend
+## Build
 
-Set `VITE_API_URL` to the API's actual HTTPS origin before building the website:
+Set VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY in artifacts/groceries-tracker/.env.local. For native builds use EXPO_PUBLIC_SUPABASE_URL, EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY, and EXPO_PUBLIC_WEB_URL in artifacts/groceries-tracker-mobile/.env.local. Only public configuration goes in these files. Public production defaults are tracked in .env.production; .env.local can override them. Example variable names are in .env.example files.
 
-```powershell
-$env:VITE_API_URL = 'https://<actual-render-service>.onrender.com'
+From the repository root:
+
+```text
+pnpm install --frozen-lockfile
+node scripts/prepare-ocr-assets.mjs
+pnpm exec tsc --build lib/api-client-react
+pnpm --filter @workspace/groceries-tracker typecheck
+pnpm --filter @workspace/groceries-tracker-mobile typecheck
 pnpm --filter @workspace/groceries-tracker build
 ```
 
-Publish `artifacts/groceries-tracker/dist/public` through Sites. The sign-in screen still allows custom server addresses, and invitation links retain their server address. Local development keeps its existing localhost default when `VITE_API_URL` is unset.
+The OCR preparation script packages the existing English traineddata model, Tesseract worker, and WASM locally. The first scan downloads those static assets; recognition itself runs on the user's device. Photos are uploaded only when saving a receipt. Native Android uses an embedded WebView pointing to /ocr.html, with no account credentials passed to that page.
 
-## Android client
+The Android JavaScript/Hermes bundle can be built locally at no charge with `pnpm exec expo export --platform android --output-dir dist/cloud-android` from the mobile directory. This is a bundle, not an installable APK. For a standalone APK use a local Android SDK/Gradle build; EAS or app-store payments are not required for the website. Existing installed clients need the updated build to use Supabase.
 
-Enter the API's HTTPS origin in the existing Server screen. The Android client uses the same accounts, workspaces, receipt APIs, and OCR as the website; it does not need a Render account.
+## New Supabase projects
 
-## Verification
+Apply supabase/migrations/*.sql in filename order to an empty project. Email/password sign-up matches the original app: the owner explicitly approved disabling email confirmation, so no SMTP provider is needed. Email addresses are unverified. Do not treat an address as identity proof. Adding verified email or password-reset delivery later requires a configured delivery service; it is not part of this migration.
 
-After deployment, check health, registration/sign-in, receipt scan/save/edit/delete, photos, household isolation and invitations, price history, and monthly summaries. Verify a test receipt survives a restart before relying on the hosted database. Use application-level backup/export regularly; do not rely on raw disk snapshot restores for SQLite recovery.
+## Existing data
+
+Local SQLite accounts are separate from Supabase accounts. No existing household data or passwords are uploaded automatically. Create a cloud account, export a backup from the old local app, and restore that backup into the intended cloud household. Backups include receipt photos. Invite other household members using the new site's invitation link or code.
+
+Lists, budgets, and goals now persist per workspace. List adds/removals are individual database operations, so concurrent household edits do not overwrite the entire list. Receipt edits retain the existing last-save-wins behavior. Unsaved receipt drafts remain on their originating device.
+
+## Limits and costs
+
+The organization stays on Free; no card, paid plan, or automatic upgrade has been configured. Free limits include a 500 MB database, 1 GB file storage, and 5 GB egress; projects may pause after a week of inactivity. When limits are reached, reduce usage/export data or explicitly choose another plan. Do not automatically upgrade. This is not unlimited or guaranteed-availability hosting. Keep exported backups: automatic database backups are not included in this configuration.
+
+The cloud edition hides optional Gemini settings and uses free device OCR. Local-server mode remains available when Supabase environment variables are absent.
+
+## Tests
+
+- `node scripts/test-cloud-db.mjs`: isolated PostgreSQL-compatible tests with PGlite, including RLS, private households, invitations, owner permissions, unit prices, atomic restore, private photo policies, and ownership succession.
+- `pnpm --filter @workspace/scripts exec tsx test-cloud-live.ts`: temporary cloud test accounts, real auth, Realtime, private uploads/downloads, deletion, backups, and shared lists. Test accounts are deleted afterward. Set QA_RECEIPT_IMAGE to a synthetic receipt PNG.
+- Browser QA: sign-in, device OCR, review/save receipt, summary, and shared-list persistence.
+
+The paid Render blueprint has been removed to prevent accidental use. The original local Node server remains available for accessing and exporting existing local data.

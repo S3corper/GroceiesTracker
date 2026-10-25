@@ -1,6 +1,7 @@
+import { AppState } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
-import { customFetch, setAuthTokenGetter, setBaseUrl } from '@workspace/api-client-react';
+import { customFetch, setAuthTokenGetter, setBaseUrl, cloudEnabled, cloudSessionToken, cloudSignOut, cloudAutoRefresh, onCloudChange, refreshCloud } from '@workspace/api-client-react';
 
 export type GroceryItem = {
   name: string;
@@ -61,7 +62,9 @@ export function GroceryProvider({ children }: { children: React.ReactNode }) {
   const [receipts, setReceipts] = useState<GroceryReceipt[]>([]);
   const [pendingDrafts, setPendingDrafts] = useState<GroceryReceipt[]>([]);
   const [hydrated, setHydrated] = useState(false);
-  const [host, setHost] = useState('');
+  const [host, setHost] = useState(cloudEnabled() ? 'cloud' : '');
+  const [syncRevision,setSyncRevision]=useState(0);
+  useEffect(()=>{if(!cloudEnabled())return;const unsubscribe=onCloudChange(()=>setSyncRevision(v=>v+1));const sub=AppState.addEventListener('change',state=>{cloudAutoRefresh(state==='active');if(state==='active')refreshCloud();});return()=>{unsubscribe();sub.remove();};},[]);
   const [token, setToken] = useState('');
   const [spaces, setSpaces] = useState<GrocerySpace[]>([]);
   const [activeSpaceId, setActiveSpaceId] = useState('');
@@ -69,12 +72,13 @@ export function GroceryProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     Promise.all([AsyncStorage.getItem(STORAGE_KEY), AsyncStorage.getItem(HOST_KEY), AsyncStorage.getItem(TOKEN_KEY), AsyncStorage.getItem(SPACE_KEY), AsyncStorage.getItem(DRAFTS_KEY)])
       .then(async ([value, savedHost, savedToken, savedSpace, savedDrafts]) => {
-        if (value) try {
+        if (value && !cloudEnabled()) try {
           const saved = JSON.parse(value) as GroceryReceipt[];
           if (Array.isArray(saved)) setReceipts(saved);
         } catch {
           setReceipts([]);
         }
+        if(cloudEnabled()){ savedHost='cloud'; savedToken=await cloudSessionToken(); }
         if (savedHost) { setHost(savedHost); setBaseUrl(savedHost); }
         if (savedToken) { setToken(savedToken); setAuthTokenGetter(() => savedToken); }
         if (savedSpace) setActiveSpaceId(savedSpace);
@@ -87,7 +91,7 @@ export function GroceryProvider({ children }: { children: React.ReactNode }) {
             setActiveSpaceId(spaceId); await AsyncStorage.setItem(SPACE_KEY, spaceId);
             if (spaceId) {
               const rows = await customFetch<any[]>(`/api/receipts?spaceId=${encodeURIComponent(spaceId)}`);
-              setReceipts(rows.map((row) => ({ id: row.id, merchant: row.merchant, total: row.total, date: row.purchaseDate, purchaseTime: row.purchaseTime, timezone: row.timezone, items: row.items.map((item: any) => ({ name: item.name, variant: item.variant, packCount: item.packCount ?? undefined, measureAmount: item.measureAmount ?? undefined, measureUnit: item.measureUnit ?? undefined, quantity: item.quantity ?? 1, price: item.linePrice, category: item.category })), imageUri: row.photoUrl ? `${savedHost}${row.photoUrl}` : undefined })));
+              setReceipts(rows.map((row) => ({ id: row.id, merchant: row.merchant, total: row.total, date: row.purchaseDate, purchaseTime: row.purchaseTime, timezone: row.timezone, items: row.items.map((item: any) => ({ name: item.name, variant: item.variant, packCount: item.packCount ?? undefined, measureAmount: item.measureAmount ?? undefined, measureUnit: item.measureUnit ?? undefined, quantity: item.quantity ?? 1, price: item.linePrice, category: item.category })), imageUri: row.photoUrl ? (cloudEnabled() ? row.photoUrl : `${savedHost}${row.photoUrl}`) : undefined })));
             }
           } catch { /* retain client-side drafts while the local host is offline */ }
         }
@@ -100,10 +104,16 @@ export function GroceryProvider({ children }: { children: React.ReactNode }) {
     let current = true;
     customFetch<any[]>(`/api/receipts?spaceId=${encodeURIComponent(activeSpaceId)}`).then((rows) => {
       if (!current) return;
-      setReceipts(rows.map((row) => ({ id: row.id, merchant: row.merchant, total: row.total, date: row.purchaseDate, purchaseTime: row.purchaseTime, timezone: row.timezone, items: row.items.map((item: any) => ({ name: item.name, variant: item.variant, packCount: item.packCount ?? undefined, measureAmount: item.measureAmount ?? undefined, measureUnit: item.measureUnit ?? undefined, quantity: item.quantity ?? 1, price: item.linePrice, category: item.category })), imageUri: row.photoUrl ? `${host}${row.photoUrl}` : undefined })));
+      setReceipts(rows.map((row) => ({ id: row.id, merchant: row.merchant, total: row.total, date: row.purchaseDate, purchaseTime: row.purchaseTime, timezone: row.timezone, items: row.items.map((item: any) => ({ name: item.name, variant: item.variant, packCount: item.packCount ?? undefined, measureAmount: item.measureAmount ?? undefined, measureUnit: item.measureUnit ?? undefined, quantity: item.quantity ?? 1, price: item.linePrice, category: item.category })), imageUri: row.photoUrl ? (cloudEnabled() ? row.photoUrl : `${host}${row.photoUrl}`) : undefined })));
     }).catch(() => undefined);
     return () => { current = false; };
-  }, [hydrated, host, token, activeSpaceId]);
+  }, [hydrated, host, token, activeSpaceId, syncRevision]);
+
+  useEffect(()=>{
+    if(!cloudEnabled()||!hydrated||!token)return;let active=true;
+    customFetch<GrocerySpace[]>('/api/spaces').then(rows=>{if(active)setSpaces(rows);}).catch(()=>undefined);
+    return()=>{active=false;};
+  },[hydrated,token,syncRevision]);
 
   useEffect(() => { if (hydrated) AsyncStorage.setItem(DRAFTS_KEY, JSON.stringify(pendingDrafts)).catch(() => undefined); }, [hydrated, pendingDrafts]);
 
@@ -133,10 +143,10 @@ export function GroceryProvider({ children }: { children: React.ReactNode }) {
     removeDraft: (id) => setPendingDrafts((current) => current.filter((draft) => draft.id !== id)),
     host, token, spaces, activeSpace,
     selectSpace: async (id) => { setActiveSpaceId(id); await AsyncStorage.setItem(SPACE_KEY, id); },
-    configureHost: async (nextHost) => { const cleanHost = nextHost.trim().replace(/\/$/, ''); setHost(cleanHost); setBaseUrl(cleanHost || null); await AsyncStorage.setItem(HOST_KEY, cleanHost); },
+    configureHost: async (nextHost) => { const cleanHost = cloudEnabled() ? 'cloud' : nextHost.trim().replace(/\/$/, ''); setHost(cleanHost); setBaseUrl(cleanHost || null); await AsyncStorage.setItem(HOST_KEY, cleanHost); },
     authenticate: async (email, password, create = false, householdName = 'My household') => { const result = await customFetch<{ token: string; spaces: GrocerySpace[] }>(`/api/auth/${create ? 'register' : 'login'}`, { method: 'POST', body: JSON.stringify({ email, password, name: householdName }) }); setToken(result.token); setSpaces(result.spaces); setAuthTokenGetter(() => result.token); await AsyncStorage.setItem(TOKEN_KEY, result.token); const selected = result.spaces.find((space) => space.kind === 'household') ?? result.spaces[0]; if (selected) { setActiveSpaceId(selected.id); await AsyncStorage.setItem(SPACE_KEY, selected.id); } },
-    signOut: async () => { setToken(''); setSpaces([]); setAuthTokenGetter(null); await AsyncStorage.removeItem(TOKEN_KEY); },
-    acceptInvitation: async (code) => { const next = await customFetch<GrocerySpace[]>(`/api/invitations/${encodeURIComponent(code.trim())}/accept`, { method: 'POST' }); setSpaces(next); const household = next.find((space) => space.kind === 'household'); if (household) { setActiveSpaceId(household.id); await AsyncStorage.setItem(SPACE_KEY, household.id); } },
+    signOut: async () => { if(cloudEnabled())await cloudSignOut(); setReceipts([]); setActiveSpaceId(''); await AsyncStorage.removeItem(STORAGE_KEY); setToken(''); setSpaces([]); setAuthTokenGetter(null); await AsyncStorage.removeItem(TOKEN_KEY); },
+    acceptInvitation: async (code) => { const next = await customFetch<GrocerySpace[]>(`/api/invitations/${encodeURIComponent(code.includes('?') ? new URL(code.trim()).searchParams.get('invite') ?? code.trim() : code.trim())}/accept`, { method: 'POST' }); setSpaces(next); const household = next.find((space) => space.kind === 'household'); if (household) { setActiveSpaceId(household.id); await AsyncStorage.setItem(SPACE_KEY, household.id); } },
     updateTimezone: async (timezone) => { if (!activeSpaceId) throw new Error('Connect to a household first.'); const updated = await customFetch<GrocerySpace>(`/api/spaces/${activeSpaceId}`, { method: 'PATCH', body: JSON.stringify({ timezone }) }); setSpaces((current) => current.map((space) => space.id === updated.id ? { ...space, ...updated } : space)); },
     updateReceiptDate: async (id, date, time) => { const updated = await customFetch<any>(`/api/receipts/${id}`, { method: 'PATCH', body: JSON.stringify({ purchaseDate: date, purchaseTime: time, timezone: activeSpace?.timezone }) }); setReceipts((current) => current.map((receipt) => receipt.id === id ? { ...receipt, date: updated.purchaseDate, purchaseTime: updated.purchaseTime, timezone: updated.timezone } : receipt)); },
   }), [receipts, pendingDrafts, host, token, spaces, activeSpaceId]);

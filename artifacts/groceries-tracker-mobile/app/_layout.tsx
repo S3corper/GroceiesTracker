@@ -14,6 +14,14 @@ import {
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { GroceryProvider } from '@/context/GroceryContext';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as Crypto from 'expo-crypto';
+import { configureCloud } from '@workspace/api-client-react';
+import { DeviceReceiptScanner } from '@/components/DeviceReceiptScanner';
+
+// Supabase and photo uploads need secure randomness in the native runtime.
+if (!globalThis.crypto?.getRandomValues) Object.defineProperty(globalThis, 'crypto', { value: { getRandomValues: Crypto.getRandomValues, randomUUID: Crypto.randomUUID } });
+configureCloud(process.env.EXPO_PUBLIC_SUPABASE_URL, process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY, AsyncStorage);
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -49,6 +57,7 @@ export default function RootLayout() {
       <ErrorBoundary>
         <QueryClientProvider client={queryClient}>
           <GroceryProvider>
+            <DeviceReceiptScanner />
             <GestureHandlerRootView>
               <KeyboardProvider>
                 <RootLayoutNav />

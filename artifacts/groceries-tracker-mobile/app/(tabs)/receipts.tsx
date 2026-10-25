@@ -1,4 +1,4 @@
-import { scanReceipt } from '@workspace/api-client-react';
+import { scanReceipt, cloudEnabled } from '@workspace/api-client-react';
 import * as ImagePicker from 'expo-image-picker';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
@@ -93,8 +93,8 @@ export default function ReceiptsScreen() {
         <View style={[styles.cameraCircle, { backgroundColor: colors.accent }]}><Feather name="camera" size={26} color={colors.primary} /></View>
         <Text style={[styles.scanTitle, { color: colors.foreground }]}>Scan a receipt</Text>
         <Text style={[styles.scanBody, { color: colors.mutedForeground }]}>Take a photo of the full receipt and recognition will pull the items into Summary automatically.</Text>
-        <View style={styles.providerRow}><Pressable onPress={() => setScanProvider('local')} style={[styles.providerChip, { backgroundColor: scanProvider === 'local' ? colors.primary : colors.secondary }]}><Text style={{ color: scanProvider === 'local' ? colors.primaryForeground : colors.foreground, fontSize: 11, fontWeight: '700' }}>Offline OCR</Text></Pressable><Pressable onPress={() => setScanProvider('gemini')} style={[styles.providerChip, { backgroundColor: scanProvider === 'gemini' ? colors.primary : colors.secondary }]}><Text style={{ color: scanProvider === 'gemini' ? colors.primaryForeground : colors.foreground, fontSize: 11, fontWeight: '700' }}>Gemini</Text></Pressable></View>
-        <Text style={[styles.scanBody, { color: colors.mutedForeground, marginTop: -8 }]}>{scanProvider === 'local' ? 'Runs on your household server without sending photos to Google.' : 'Uses your saved Gemini key. The photo is sent to Google after confirmation.'}</Text>
+        <View style={styles.providerRow}><Pressable onPress={() => setScanProvider('local')} style={[styles.providerChip, { backgroundColor: scanProvider === 'local' ? colors.primary : colors.secondary }]}><Text style={{ color: scanProvider === 'local' ? colors.primaryForeground : colors.foreground, fontSize: 11, fontWeight: '700' }}>Offline OCR</Text></Pressable>{!cloudEnabled() && <Pressable onPress={() => setScanProvider('gemini')} style={[styles.providerChip, { backgroundColor: scanProvider === 'gemini' ? colors.primary : colors.secondary }]}><Text style={{ color: scanProvider === 'gemini' ? colors.primaryForeground : colors.foreground, fontSize: 11, fontWeight: '700' }}>Gemini</Text></Pressable>}</View>
+        <Text style={[styles.scanBody, { color: colors.mutedForeground, marginTop: -8 }]}>{scanProvider === 'local' ? cloudEnabled() ? 'Free recognition runs on this device.' : 'Runs on your household server without sending photos to Google.' : 'Uses your saved Gemini key. The photo is sent to Google after confirmation.'}</Text>
         <Pressable style={({ pressed }) => [styles.primaryButton, { backgroundColor: colors.primary, opacity: pressed || isScanning ? 0.75 : 1 }]} onPress={captureReceipt} disabled={isScanning} testID="button-capture-receipt">
           {isScanning ? <ActivityIndicator size="small" color={colors.primaryForeground} /> : <Feather name="camera" size={16} color={colors.primaryForeground} />}
           <Text style={[styles.primaryButtonText, { color: colors.primaryForeground }]}>{isScanning ? 'Recognizing…' : 'Use camera'}</Text>
