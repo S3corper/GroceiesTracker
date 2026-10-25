@@ -1,6 +1,10 @@
 # Deployment verification — 2026-10-25
 
-Public website: https://grocery-tracker-leo.genial-tetra-8373.chatgpt.site
+Primary public website: https://s3corper.github.io/
+
+Previous website: https://grocery-tracker-leo.genial-tetra-8373.chatgpt.site
+
+GitHub Pages publication: repository S3corper/S3corper.github.io, main branch root, HTTPS enforced; GitHub reports build 1314051596 succeeded for commit 78549d0d50678893745d60a619de5fec50277e5e. The new address loads the app sign-in page. HTTP downloads of index.html, ocr.html, the main app bundle, device OCR bundle, worker, WASM, and English model match the previously tested files byte for byte. This hostname change uses the same Supabase backend and does not migrate accounts or data.
 
 Sites confirmed a successful public deployment. An unauthenticated browser reached the app's sign-in page without a hosting-provider login. Production sign-in then loaded the test household's cloud receipts and budget.
 

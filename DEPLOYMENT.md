@@ -1,13 +1,15 @@
 # Free cloud deployment
 
-The hosted edition uses Supabase Free for accounts, PostgreSQL, private receipt photos, and live household updates. The frontend is static and published through Sites; the same output is compatible with Cloudflare Pages. No Render, Railway, paid AI API, domain purchase, or paid native build service is required.
+The hosted edition uses Supabase Free for accounts, PostgreSQL, private receipt photos, and live household updates. The primary frontend is published on GitHub Pages at https://s3corper.github.io/. The previous Sites address remains available. No Render, Railway, paid AI API, domain purchase, or paid native build service is required.
 
 ## Live configuration
 
 - Supabase organization: Grocery Tracker (Free)
 - Project: iwadadmqtvvihprezfkk, us-east-1
 - API: https://iwadadmqtvvihprezfkk.supabase.co
-- Website: https://grocery-tracker-leo.genial-tetra-8373.chatgpt.site
+- Website: https://s3corper.github.io/
+- Public compiled-assets repository: https://github.com/S3corper/S3corper.github.io
+- Previous website: https://grocery-tracker-leo.genial-tetra-8373.chatgpt.site
 - Sites project: appgprj_6ade4ed533e4819190d1fb8ae1029bd6
 
 The public URL is deployed and browser-tested. See [DEPLOYMENT-VERIFICATION.md](DEPLOYMENT-VERIFICATION.md) for the checks and remaining native-device limitation.
@@ -30,6 +32,12 @@ pnpm --filter @workspace/groceries-tracker build
 ```
 
 The OCR preparation script packages the existing English traineddata model, Tesseract worker, and WASM locally. The first scan downloads those static assets; recognition itself runs on the user's device. Photos are uploaded only when saving a receipt. Native Android uses an embedded WebView pointing to /ocr.html, with no account credentials passed to that page.
+
+## Publishing GitHub Pages updates
+
+The public S3corper.github.io repository contains compiled assets only. The editable application source remains in the separate private GroceiesTracker repository. After a production web build, copy the contents of artifacts/groceries-tracker/dist/public into the Pages repository root, retain .nojekyll and README.md, and commit/push main. GitHub Pages serves the main branch root with HTTPS enforced. Do not copy local environment files, SQLite data, test credentials, or private source into that repository. Confirm Pages reports a successful build and verify the public URL after each update.
+
+Both website addresses use the same Supabase project. Existing cloud accounts and data carry over; browser sessions and unsaved local drafts are scoped to each website origin, so users sign in again on the new address. New Android exports use the GitHub URL for the OCR bridge. Use --clear when exporting after changing Expo environment variables to avoid a cached old hostname.
 
 The Android JavaScript/Hermes bundle can be built locally at no charge with `pnpm exec expo export --platform android --output-dir dist/cloud-android` from the mobile directory. This is a bundle, not an installable APK. For a standalone APK use a local Android SDK/Gradle build; EAS or app-store payments are not required for the website. Existing installed clients need the updated build to use Supabase.
 
