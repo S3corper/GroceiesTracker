@@ -1,10 +1,10 @@
 # Deployment verification — 2026-10-25
 
-Primary public website: https://s3corper.github.io/
+Primary public website: https://s3corper.github.io/GroceiesTracker/
 
 Previous website: https://grocery-tracker-leo.genial-tetra-8373.chatgpt.site
 
-GitHub Pages publication: repository S3corper/S3corper.github.io, main branch root, HTTPS enforced; GitHub reports build 1314051596 succeeded for commit 78549d0d50678893745d60a619de5fec50277e5e. The new address loads the app sign-in page. HTTP downloads of index.html, ocr.html, the main app bundle, device OCR bundle, worker, WASM, and English model match the previously tested files byte for byte. This hostname change uses the same Supabase backend and does not migrate accounts or data.
+GitHub Pages publication: repository S3corper/GroceiesTracker, gh-pages branch root, HTTPS enforced; GitHub reports build 1314079176 succeeded for commit f7ca47ecf32ddf5308c865c8f46ee12fbb13791f. The repository is public with the owner's explicit approval. The new address loads the app sign-in page. HTTP downloads of index.html, ocr.html, the main app bundle, device OCR bundle, worker, WASM, and English model match the production build byte for byte. OCR paths resolve correctly below /GroceiesTracker/. This path change uses the same Supabase backend and does not migrate accounts or data. The Android export was rebuilt with the new OCR bridge URL.
 
 Sites confirmed a successful public deployment. An unauthenticated browser reached the app's sign-in page without a hosting-provider login. Production sign-in then loaded the test household's cloud receipts and budget.
 

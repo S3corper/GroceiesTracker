@@ -1,14 +1,14 @@
 # Free cloud deployment
 
-The hosted edition uses Supabase Free for accounts, PostgreSQL, private receipt photos, and live household updates. The primary frontend is published on GitHub Pages at https://s3corper.github.io/. The previous Sites address remains available. No Render, Railway, paid AI API, domain purchase, or paid native build service is required.
+The hosted edition uses Supabase Free for accounts, PostgreSQL, private receipt photos, and live household updates. The primary frontend is published on GitHub Pages at https://s3corper.github.io/GroceiesTracker/. The previous Sites address remains available. No Render, Railway, paid AI API, domain purchase, or paid native build service is required.
 
 ## Live configuration
 
 - Supabase organization: Grocery Tracker (Free)
 - Project: iwadadmqtvvihprezfkk, us-east-1
 - API: https://iwadadmqtvvihprezfkk.supabase.co
-- Website: https://s3corper.github.io/
-- Public compiled-assets repository: https://github.com/S3corper/S3corper.github.io
+- Website: https://s3corper.github.io/GroceiesTracker/
+- Public repository: https://github.com/S3corper/GroceiesTracker (source on main, compiled website on gh-pages)
 - Previous website: https://grocery-tracker-leo.genial-tetra-8373.chatgpt.site
 - Sites project: appgprj_6ade4ed533e4819190d1fb8ae1029bd6
 
@@ -35,15 +35,9 @@ The OCR preparation script packages the existing English traineddata model, Tess
 
 ## Publishing GitHub Pages updates
 
-### Prepared move into this repository
+The owner explicitly approved making S3corper/GroceiesTracker public. GitHub Pages is active on its gh-pages branch root, with HTTPS enforced. Build with BASE_PATH=/GroceiesTracker/, then copy the contents of artifacts/groceries-tracker/dist/public into a checkout of gh-pages, retain .nojekyll and README.md, and commit/push that branch. Source edits remain on main. Never include local environment files, SQLite data, test credentials, or privileged keys. Confirm Pages reports a successful build and verify the public URL after each update.
 
-The gh-pages branch of S3corper/GroceiesTracker contains a production build for https://s3corper.github.io/GroceiesTracker/. Build it with BASE_PATH=/GroceiesTracker/; the OCR assets now resolve relative to the page, so both root sites and repository subpaths work. The web typecheck and production build passed.
-
-Activation is pending: GitHub's Pages API returned HTTP 422, "Your current plan does not support GitHub Pages for this repository." This repository is private. Free Pages requires public visibility, which would expose main and its commit history as well as gh-pages. Obtain the owner's explicit approval before changing visibility. Do not delete S3corper/S3corper.github.io until the replacement is live and verified. After activation, update the native EXPO_PUBLIC_WEB_URL to https://s3corper.github.io/GroceiesTracker and export with --clear.
-
-### Current deployment
-
-The public S3corper.github.io repository contains compiled assets only. The editable application source remains in the separate private GroceiesTracker repository. After a production web build, copy the contents of artifacts/groceries-tracker/dist/public into the Pages repository root, retain .nojekyll and README.md, and commit/push main. GitHub Pages serves the main branch root with HTTPS enforced. Do not copy local environment files, SQLite data, test credentials, or private source into that repository. Confirm Pages reports a successful build and verify the public URL after each update.
+OCR assets resolve relative to the page, supporting both root sites and repository subpaths. The native EXPO_PUBLIC_WEB_URL is https://s3corper.github.io/GroceiesTracker. The old separate S3corper.github.io repository is pending final browser deletion confirmation because the saved GitHub API credential cannot delete repositories.
 
 Both website addresses use the same Supabase project. Existing cloud accounts and data carry over; browser sessions and unsaved local drafts are scoped to each website origin, so users sign in again on the new address. New Android exports use the GitHub URL for the OCR bridge. Use --clear when exporting after changing Expo environment variables to avoid a cached old hostname.
 
