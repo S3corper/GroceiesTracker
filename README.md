@@ -1,107 +1,101 @@
 # GroceriesTracker
 
-GroceriesTracker turns grocery receipts into a shared, searchable record. Scan or upload a receipt, review the recognized store, date, items and prices, then track spending by week or month and compare product prices over time.
+Scan grocery receipts, share household shopping records, and track spending and product prices over time.
 
-You can use it in a browser or install the Android client. In either case, a computer on your home network runs the local server and stores the household's receipts and photos. Other phones connect to that computer over Wi-Fi.
+**[Open Grocery Tracker](https://s3corper.github.io/GroceiesTracker/)**
 
-## What you need
+The hosted website works in desktop and phone browsers. It uses Supabase for accounts, shared records, and private receipt photos, so you do not need to keep a home computer running. Receipt recognition runs on your device using bundled Tesseract OCR.
 
-- Windows 10/11, macOS or Linux for the host computer
-- Node.js 24 or later
-- pnpm
-- A private home Wi-Fi network for phones connecting to the computer
+## Get started
 
-The commands below use **PowerShell** on Windows. Keep the host computer awake and connected to Wi-Fi while other devices use the tracker.
+1. Open the [website](https://s3corper.github.io/GroceiesTracker/) and create an account or sign in.
+2. Choose a Personal or Household workspace. Invite household members with an invitation link or code.
+3. Scan or upload a receipt, then review the store, purchase date, items, quantities, and prices before saving.
+4. Use receipt history, spending summaries, product prices, and shared shopping lists to manage groceries together.
 
-## 1. Download and install the project
+Cloud accounts are separate from accounts on the older local server. To bring existing receipts across, export a backup from the local app and restore it into the intended cloud household in Settings. Accounts and passwords are not migrated automatically.
 
-Install Node.js and pnpm, then open PowerShell and run:
+## Features
+
+- **Receipt scanning and review:** device OCR with editable items, prices, purchase date, and optional time.
+- **Shared workspaces:** household invitations, membership controls, and live updates across signed-in devices.
+- **Spending summaries:** weekly and monthly views using the workspace timezone, plus budgets and goals.
+- **Price history:** compare products and variants, including unit prices when quantity and units are known.
+- **Shopping lists:** shared lists saved per workspace.
+- **Backups:** export and restore household receipts, including photos.
+- **Responsive interface:** desktop and mobile layouts with a collapsible navigation sidebar.
+
+## Data and scanning
+
+OCR assets download for the first scan; recognition then runs on the device. Receipt photos upload to private cloud storage when you save a receipt. Review OCR results before saving, especially for faint or angled photos. Unsaved drafts remain on the device where they were created.
+
+The hosted edition uses device OCR and does not require a paid AI API key. Optional Gemini recognition belongs to the local-server edition.
+
+The current deployment uses Supabase Free and is subject to service quotas and inactivity pausing. Keep exported backups. Email confirmation is disabled in this deployment, and password-reset email delivery is not configured. See [deployment notes](DEPLOYMENT.md) for configuration details and [verification results](DEPLOYMENT-VERIFICATION.md) for the tested scope.
+
+## Run the website locally
+
+Use Node.js 24 or newer and pnpm. The examples below use PowerShell.
 
 ```powershell
 git clone https://github.com/S3corper/GroceiesTracker.git
 cd GroceiesTracker
-pnpm install
+pnpm install --frozen-lockfile
 ```
 
-If you already downloaded the project, open PowerShell in its folder and run `pnpm install` there.
+For cloud development, create `artifacts/groceries-tracker/.env.local` with your project's public configuration:
 
-## 2. Start the local server
-
-In the first PowerShell window, from the project folder, choose a permanent folder for your household database and receipt photos, then start the API:
-
-```powershell
-$env:PORT = "3000"
-$env:GROCERIES_DATA_DIR = "$env:LOCALAPPDATA\GroceriesTracker"
-pnpm --filter @workspace/api-server dev
+```dotenv
+VITE_SUPABASE_URL=https://YOUR_PROJECT.supabase.co
+VITE_SUPABASE_PUBLISHABLE_KEY=YOUR_PUBLISHABLE_KEY
 ```
 
-Leave this window open. The database and receipt images will be stored in the folder you selected. Back up that folder regularly, and use the app's backup/export option as an additional copy.
+A new backend also needs the migrations in `supabase/migrations/`, applied in filename order; see [DEPLOYMENT.md](DEPLOYMENT.md). Use a separate project for development if you do not want to modify live household data. Only public client configuration belongs in the frontend; never put a service-role key or database password in these variables.
 
-## 3. Start the local website
-
-Open a **second** PowerShell window in the project folder and run:
+Prepare the shared library and OCR files, then start Vite:
 
 ```powershell
+pnpm exec tsc --build lib/api-client-react
+node scripts/prepare-ocr-assets.mjs
 pnpm --filter @workspace/groceries-tracker dev
 ```
 
-On the host computer, open [http://localhost:5173](http://localhost:5173). Create an account, then choose or create a Personal or Household workspace. The first account on a new server creates its own spaces.
+Open [http://localhost:5173](http://localhost:5173). In cloud mode, the website connects directly to the configured backend; the local API server is not required.
 
-## 4. Connect phones and other computers
+### Local-server mode
 
-1. Keep the API and website windows running on the host computer.
-2. On the host, run `ipconfig` and find the IPv4 address for the Wi-Fi connection, for example `192.168.1.25`.
-3. On another device connected to the same Wi-Fi, open `http://192.168.1.25:5173` in its browser, replacing the example address with the host's address.
-4. On the website's sign-in screen, set **Server address** to `http://192.168.1.25:3000`. In the Android app, open **Server** and enter the same address. Then sign in or create an account.
+The original Node/SQLite server remains available for private home-network use and exporting older data. Leave both `VITE_SUPABASE_*` variables empty to select local-server mode, then follow [LOCAL_HOSTING.md](LOCAL_HOSTING.md).
 
-If the phone cannot connect, check that both devices are on the same Wi-Fi and allow Node.js through the computer firewall on **Private networks**. The website uses port `5173` and the API uses port `3000`. Do not expose these ports to the public internet or set up router port forwarding. For access away from home, use a private VPN you control.
+Production builds include public cloud defaults from `.env.production`. To build for a local server, explicitly override both variables to empty values in `.env.local`. For the native client, the equivalent variables are `EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY`.
 
-You can also use the website on a phone without installing the app. The Android client and the mobile website both connect to the same server and workspace records.
+## Build and publish the website
 
-## 5. Use the Android app
-
-### Try it with Expo Go
-
-Install Expo Go on an Android phone, then open a third PowerShell window in the project folder and run:
+For this repository's GitHub Pages address, build with the repository subpath:
 
 ```powershell
-pnpm --filter @workspace/groceries-tracker-mobile dev
+pnpm exec tsc --build lib/api-client-react
+pnpm --filter @workspace/groceries-tracker typecheck
+$env:BASE_PATH = "/GroceiesTracker/"
+pnpm --filter @workspace/groceries-tracker build
 ```
 
-Scan the displayed QR code with Expo Go. Open the **Server** tab in GroceriesTracker, enter the host computer's API address (`http://192.168.1.25:3000`), then sign in or create an account.
+The build prepares OCR assets automatically and writes the website to `artifacts/groceries-tracker/dist/public`. Public production configuration is tracked in `.env.production`; `.env.local` can override it for your own deployment.
 
-### Build and install an Android APK
+Source code lives on `main`. Publish the contents of the build output to the root of `gh-pages`, preserving `.nojekyll` and that branch's README. GitHub Pages serves the `gh-pages` branch. See [DEPLOYMENT.md](DEPLOYMENT.md) for the full deployment workflow.
 
-The repository is configured for an installable Android preview APK. Building it with EAS requires an Expo account and internet access. From the project folder:
+## Android client
 
-```powershell
-cd artifacts/groceries-tracker-mobile
-npx eas-cli@latest login
-npx eas-cli@latest build:configure
-npx eas-cli@latest build --platform android --profile preview
-```
+The Expo/React Native client is in `artifacts/groceries-tracker-mobile`. Its cloud configuration uses `EXPO_PUBLIC_SUPABASE_URL`, `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, and `EXPO_PUBLIC_WEB_URL`; see the directory's `.env.example` and the [deployment notes](DEPLOYMENT.md).
 
-When the build finishes, open the build page/link printed by EAS, download the APK to the Android phone, and install it. Android may ask you to allow installation from that browser or file manager. Open the app and connect it to the host computer as described above.
+An Android JavaScript/Hermes bundle has been exported and checked. This is not an installable APK, and camera/WebView behavior has not yet been validated on a physical Android device or emulator. Use the mobile website for browser access. Existing native clients need an updated build to connect to the cloud backend.
 
-The APK is a **client**: it connects to the computer-hosted server. Hosting the server directly on an Android phone is not supported in this build. iPhones can use the mobile website or Expo Go as clients.
+## Project layout
 
-## Scanning receipts and privacy
-
-- Offline OCR runs on the local server by default. Review the scanned items and correct anything uncertain before saving.
-- Gemini recognition is optional. Add a Gemini key in Settings, then select Gemini for a scan. The app asks before sending the receipt image to Google; the key is stored on that device.
-- Receipt records, photos, workspaces and member access are managed by the local server. Keep the host's data folder private and use household invitations to add members.
-- Edit a receipt's date and optional time during review or later. Weekly/monthly summaries use the workspace timezone.
-
-## Backups and moving the host
-
-Export a backup from the app's Settings before moving to another computer. Keep a copy of the data folder configured in `GROCERIES_DATA_DIR` as well. On the new host, install the project, start the server with a persistent data folder, and use the app's restore option to load the backup.
-
-## Troubleshooting
-
-- **The website does not open:** confirm the web command is still running. On the host, try `http://localhost:5173`.
-- **A phone says the host is offline:** verify the host computer is awake, both devices share Wi-Fi, the server is running, and the firewall allows Node.js on a private network.
-- **The app cannot reach the API:** use the host's LAN IPv4 address and port `3000`, not `localhost`. On a phone, `localhost` refers to the phone itself.
-- **A receipt is not recognized accurately:** correct the draft before saving. OCR can misread faint, angled or wrinkled receipts.
-- **You need another host port:** set `$env:PORT = "3001"` before starting the API, then enter that port in each client.
-
-For additional host configuration and implementation notes, see [LOCAL_HOSTING.md](LOCAL_HOSTING.md).
+| Path | Purpose |
+| --- | --- |
+| `artifacts/groceries-tracker` | React/Vite website and browser OCR page |
+| `artifacts/groceries-tracker-mobile` | Expo/React Native client |
+| `artifacts/api-server` | Original local Node/SQLite API |
+| `lib/api-client-react` | Shared API client, cloud transport, and receipt parsing |
+| `supabase/migrations` | Cloud schema, access controls, and API migrations |
+| `scripts` | OCR asset preparation, tests, and build utilities |
