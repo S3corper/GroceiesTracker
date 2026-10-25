@@ -35,6 +35,14 @@ The OCR preparation script packages the existing English traineddata model, Tess
 
 ## Publishing GitHub Pages updates
 
+### Prepared move into this repository
+
+The gh-pages branch of S3corper/GroceiesTracker contains a production build for https://s3corper.github.io/GroceiesTracker/. Build it with BASE_PATH=/GroceiesTracker/; the OCR assets now resolve relative to the page, so both root sites and repository subpaths work. The web typecheck and production build passed.
+
+Activation is pending: GitHub's Pages API returned HTTP 422, "Your current plan does not support GitHub Pages for this repository." This repository is private. Free Pages requires public visibility, which would expose main and its commit history as well as gh-pages. Obtain the owner's explicit approval before changing visibility. Do not delete S3corper/S3corper.github.io until the replacement is live and verified. After activation, update the native EXPO_PUBLIC_WEB_URL to https://s3corper.github.io/GroceiesTracker and export with --clear.
+
+### Current deployment
+
 The public S3corper.github.io repository contains compiled assets only. The editable application source remains in the separate private GroceiesTracker repository. After a production web build, copy the contents of artifacts/groceries-tracker/dist/public into the Pages repository root, retain .nojekyll and README.md, and commit/push main. GitHub Pages serves the main branch root with HTTPS enforced. Do not copy local environment files, SQLite data, test credentials, or private source into that repository. Confirm Pages reports a successful build and verify the public URL after each update.
 
 Both website addresses use the same Supabase project. Existing cloud accounts and data carry over; browser sessions and unsaved local drafts are scoped to each website origin, so users sign in again on the new address. New Android exports use the GitHub URL for the OCR bridge. Use --clear when exporting after changing Expo environment variables to avoid a cached old hostname.

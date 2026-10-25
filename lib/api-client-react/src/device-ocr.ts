@@ -150,10 +150,12 @@ export async function scanOnDevice(body: {
     !["image/jpeg", "image/png", "image/webp"].includes(body.mimeType)
   )
     throw new Error("Choose a receipt photo.");
+  // Resolve beside the page so root sites and repository subpaths both work.
+  const assets = new URL("./ocr/", document.baseURI);
   const worker = await createWorker("eng", 1, {
-    workerPath: "/ocr/worker.min.js",
-    corePath: "/ocr",
-    langPath: "/ocr",
+    workerPath: new URL("worker.min.js", assets).href,
+    corePath: assets.href,
+    langPath: assets.href,
     gzip: false,
   });
   const image = "data:" + body.mimeType + ";base64," + body.imageBase64;
