@@ -114,7 +114,7 @@ function todayInTimezone(timezone: string) {
 }
 
 function LocalAccess({ children }: { children: ReactNode }) {
-  const [host, setHost] = useState(() => new URLSearchParams(window.location.search).get('api') ?? localStorage.getItem('gt-host') ?? 'http://localhost:3000');
+  const [host, setHost] = useState(() => new URLSearchParams(window.location.search).get('api') ?? localStorage.getItem('gt-host') ?? import.meta.env.VITE_API_URL ?? 'http://localhost:3000');
   const [token, setToken] = useState(() => localStorage.getItem('gt-token') ?? '');
   const [accountEmail, setAccountEmail] = useState(() => localStorage.getItem('gt-email') ?? '');
   const [accountDisplayName, setAccountDisplayName] = useState(() => localStorage.getItem('gt-display-name') ?? '');
