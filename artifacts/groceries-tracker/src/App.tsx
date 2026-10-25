@@ -14,6 +14,8 @@ import {
   ClipboardList,
   FileText,
   LayoutDashboard,
+  PanelLeftClose,
+  PanelLeftOpen,
   ListChecks,
   PieChart,
   Plus,
@@ -241,7 +243,7 @@ function Sidebar({
   onSelectSpace: (space: LocalSpace) => void;
 }) {
   return (
-    <aside className="sidebar" aria-label="Primary navigation">
+    <aside id="primary-navigation" className="sidebar" aria-label="Primary navigation">
       <Brand />
       <div className="workspace-row">
         <button
@@ -642,6 +644,8 @@ function Dashboard() {
   const [month, setMonth] = useState('All time');
   const [monthOpen, setMonthOpen] = useState(false);
   const [workspaceOpen, setWorkspaceOpen] = useState(false);
+  const [sidebarHidden, setSidebarHidden] = useState(() => localStorage.getItem('gt-sidebar-hidden') === 'true');
+  useEffect(() => { localStorage.setItem('gt-sidebar-hidden', String(sidebarHidden)); }, [sidebarHidden]);
   const [createSpaceOpen, setCreateSpaceOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [profileEditOpen, setProfileEditOpen] = useState(false);
@@ -897,7 +901,18 @@ function Dashboard() {
   const visibleReceipts = showAll ? monthReceipts : monthReceipts.slice(0, 3);
 
   return (
-    <div className="app-shell">
+    <div className={`app-shell${sidebarHidden ? ' sidebar-hidden' : ''}`}>
+      <div className="navigation-toolbar">
+        <button
+          className="navigation-toggle"
+          aria-controls="primary-navigation"
+          aria-expanded={!sidebarHidden}
+          onClick={() => { setSidebarHidden((hidden) => !hidden); setWorkspaceOpen(false); setProfileOpen(false); }}
+        >
+          {sidebarHidden ? <PanelLeftOpen size={18}/> : <PanelLeftClose size={18}/>}
+          <span>{sidebarHidden ? 'Show navigation' : 'Hide navigation'}</span>
+        </button>
+      </div>
       <Sidebar
         activeSection={activeSection}
         setActiveSection={(section) => { setActiveSection(section); setShowUploadPage(false); }}

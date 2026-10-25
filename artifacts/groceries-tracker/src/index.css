@@ -539,39 +539,37 @@
 .manual-entry-line .text-button { color: #b51e2f; font-size: 14px; text-decoration: underline; text-underline-offset: 3px; }
 .upload-privacy-note { display: flex; justify-content: center; align-items: center; gap: 8px; margin: 30px auto 0; color: #85868d; font-size: 12px; text-align: center; }
 .status-dot { display: inline-block; width: 8px; height: 8px; flex: 0 0 auto; border-radius: 50%; background: #cd2838; }
-.receipt-review-page { max-width: 1420px; margin: 0 auto; padding: 2px 0 35px; }
+.receipt-review-page { container: receipt-review / inline-size; max-width: 1420px; margin: 0 auto; padding: 2px 0 35px; }
 .receipt-review-heading { margin-bottom: 22px; }
 .review-heading-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; margin-top: 20px; }
 .icon-close { width: 36px; height: 36px; display: grid; flex: 0 0 auto; place-items: center; border: 1px solid #ededee; border-radius: 12px; color: #6d6e75; background: #fff; }
 .icon-close:hover { color: #b71e30; border-color: #f0c6cb; background: #fff8f8; }
-.receipt-review-fields { display: grid; grid-template-columns: 1.2fr 1fr .8fr .8fr; gap: 14px; margin: 22px 0; padding: 18px; border: 1px solid #eee; border-radius: 17px; background: #fff; }
+.receipt-review-fields { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; margin: 22px 0; padding: 18px; border: 1px solid #eee; border-radius: 17px; background: #fff; }
 .receipt-review-fields label { display: grid; gap: 7px; color: #62636a; font-size: 12px; font-weight: 700; }
 .receipt-review-fields label span { color: #9a9ba0; font-weight: 400; }
 .receipt-review-fields input, .review-table-row input { width: 100%; min-width: 0; min-height: 39px; padding: 0 10px; border: 1px solid #e7e7e9; border-radius: 9px; outline: none; color: #27282d; background: #fff; font-size: 13px; }
 .receipt-review-fields input:focus, .review-table-row input:focus { border-color: #cf3341; box-shadow: 0 0 0 3px #c91f3210; }
-.receipt-review-layout { display: grid; grid-template-columns: minmax(0,1fr) 330px; gap: 18px; align-items: start; }
+.receipt-review-layout { display: grid; grid-template-columns: minmax(0,1fr); gap: 18px; align-items: start; }
 .receipt-review-table-card, .receipt-breakdown-card { min-width: 0; padding: 20px; border: 1px solid #ececee; border-radius: 18px; background: #fff; box-shadow: 0 6px 22px #1a15200a; }
 .review-table-title { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 18px; }
 .review-table-title h2 { margin: 0; color: #222329; font: 700 17px 'Manrope',sans-serif; }
 .review-table-title p { margin: 5px 0 0; color: #85868d; font-size: 12px; }
-.review-table-title .secondary-button { min-height: 36px; border: 1px solid #eee0e2; color: #b51e2f; background: #fff; }
+.review-table-title .secondary-button { display: inline-flex; align-items: center; gap: 6px; flex-shrink: 0; white-space: nowrap; min-height: 36px; border: 1px solid #eee0e2; color: #b51e2f; background: #fff; }
 .review-table-scroll { width: 100%; overflow-x: auto; }
-.review-table-head, .review-table-row { min-width: 850px; display: grid; grid-template-columns: minmax(155px,1.35fr) minmax(115px,1fr) 66px 82px minmax(105px,.9fr) 104px 34px; align-items: center; gap: 8px; }
+.review-table-head, .review-table-row { min-width: 760px; display: grid; grid-template-columns: minmax(155px,1fr) 104px 48px 60px 120px 88px 36px; align-items: center; gap: 6px; }
 .review-product { display: grid; gap: 4px; }
 .review-product input:last-child { min-height: 30px; border-color: transparent; padding-left: 1px; color: #898a91; font-size: 11px; }
 .review-table-head { padding: 0 4px 11px; color: #878890; font-size: 11px; font-weight: 700; }
 .review-table-row { padding: 9px 4px; border-top: 1px solid #f0f0f1; }
 .review-table-row input { min-height: 37px; padding: 0 8px; font-size: 12px; }
 .review-table-row input[type=number] { text-align: right; }
-.review-measure { display: flex; gap: 4px; }
-.review-measure input:first-child { width: 62%; }
-.review-measure input:last-child { width: 38%; }
+.review-measure { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 4px; }
 .review-price { display: flex; align-items: center; gap: 5px; padding: 0 8px; border: 1px solid #e7e7e9; border-radius: 9px; color: #9899a0; }
 .review-price input { padding: 0; border: 0; box-shadow: none !important; text-align: right; }
 .review-table-foot { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 14px 4px 0; border-top: 1px solid #eee; color: #777880; font-size: 12px; }
 .review-table-foot .text-button { display: inline-flex; align-items: center; gap: 5px; color: #bd2133; font-size: 12px; }
 .review-table-foot strong { margin-left: 12px; color: #24252b; font-size: 15px; }
-.receipt-breakdown-card { position: sticky; top: 18px; padding: 22px; }
+.receipt-breakdown-card { position: static; padding: 22px; }
 .receipt-saved-status { display: flex; align-items: center; gap: 8px; color: #6d6f76; font-size: 12px; }
 .receipt-breakdown-total { display: grid; gap: 8px; margin-top: 20px; padding-bottom: 18px; border-bottom: 1px solid #ededee; color: #777880; font-size: 13px; }
 .receipt-breakdown-total strong { color: #202127; font: 800 34px/1 'Manrope',sans-serif; letter-spacing: -.04em; }
@@ -596,7 +594,6 @@
 .review-save-note { margin: 10px 0 0; color: #92939a; font-size: 11px; text-align: center; }
 .receipt-review-page .primary-button:disabled { opacity: .5; cursor: not-allowed; }
 @media (max-width: 980px) {
-  .receipt-review-layout { grid-template-columns: minmax(0,1fr) 280px; }
   .main { padding: 28px 24px 44px; }
 }
 @media (max-width: 700px) {
@@ -632,6 +629,38 @@
   .receipt-breakdown-card { position: static; }
   .review-table-title { align-items: flex-start; }
 }
+@container receipt-review (min-width: 1160px) {
+  .receipt-review-layout { grid-template-columns: minmax(0, 1fr) 300px; }
+  .receipt-breakdown-card { position: sticky; top: 18px; }
+}
+@container receipt-review (max-width: 760px) {
+  .receipt-review-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .review-table-title, .review-table-foot { flex-wrap: wrap; }
+}
+@container receipt-review (max-width: 430px) {
+  .receipt-review-fields { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* Keep the navigation control available even when the sidebar is hidden. */
+.app-shell { position: relative; }
+.navigation-toolbar { position: absolute; top: 12px; left: 282px; }
+.navigation-toggle { display: inline-flex; align-items: center; gap: 8px; min-height: 36px; padding: 6px 10px; border: 1px solid hsl(var(--border)); border-radius: 9px; color: hsl(var(--muted-foreground)); background: hsl(var(--card)); font-size: 12px; }
+.navigation-toggle:hover { color: hsl(var(--foreground)); background: hsl(var(--secondary)); }
+.navigation-toggle:focus-visible { outline: 3px solid hsl(var(--primary) / .45); outline-offset: 3px; }
+.app-shell > .main { padding-top: 70px; }
+.sidebar-hidden > .sidebar { display: none; }
+.sidebar-hidden > .main { width: 100%; margin-left: 0; }
+.sidebar-hidden > .navigation-toolbar { left: 38px; }
+@media (min-width: 701px) and (max-width: 980px) {
+  .navigation-toolbar { left: 268px; }
+  .sidebar-hidden > .navigation-toolbar { left: 24px; }
+}
+@media (max-width: 700px) {
+  .navigation-toolbar, .sidebar-hidden > .navigation-toolbar { position: static; padding: 10px 15px; background: hsl(var(--sidebar)); border-bottom: 1px solid hsl(var(--border)); }
+  .navigation-toggle { min-height: 44px; }
+  .app-shell > .main { padding-top: 18px; }
+}
+
 @media (max-width: 430px) {
   .main { padding: 18px 12px 28px; }
   .receipt-review-fields { grid-template-columns: 1fr; }
