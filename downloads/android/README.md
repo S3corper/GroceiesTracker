@@ -4,7 +4,7 @@ Scan this QR code on your Android phone to download the signed APK:
 
 ![Download Grocery Tracker APK](download-qr.png)
 
-[Download the APK](https://github.com/S3corper/GroceiesTracker/raw/refs/heads/codex/android-apk-testing/downloads/android/grocery-tracker-release.apk)
+[Download the APK](https://github.com/S3corper/GroceiesTracker/raw/refs/heads/android-apk-testing/downloads/android/grocery-tracker-release.apk)
 
 Open the downloaded APK, allow installation from your browser or file manager if Android asks, then install **Grocery Tracker**. Sign in with your existing website account and select the same workspace. Android 8.0 or newer and an internet connection are required.
 
