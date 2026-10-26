@@ -558,17 +558,15 @@
 .review-table-title p { margin: 5px 0 0; color: #85868d; font-size: 12px; }
 .review-table-title .secondary-button { display: inline-flex; align-items: center; gap: 6px; flex-shrink: 0; white-space: nowrap; min-height: 36px; border: 1px solid #eee0e2; color: #b51e2f; background: #fff; }
 .review-table-scroll { width: 100%; }
-.review-table-head, .review-table-row { min-width: 0; display: grid; grid-template-columns: minmax(0,1fr) 88px 48px 54px 110px 80px 32px; align-items: center; gap: 6px; }
+.review-table-head, .review-table-row { min-width: 0; display: grid; grid-template-columns: var(--review-columns, minmax(0,1fr) 88px 48px 54px 110px 80px 32px); align-items: center; gap: 6px; zoom: var(--review-scale, 1); }
 .review-table-row > * { min-width: 0; }
 .review-cell-label { display: none; }
 .review-table-row > .icon-close { width: 32px; }
-.review-product { display: grid; gap: 4px; }
-.review-product input:last-child { min-height: 30px; border-color: transparent; padding-left: 1px; color: #898a91; font-size: 11px; }
 .review-table-head { padding: 0 4px 11px; color: #878890; font-size: 11px; font-weight: 700; }
 .review-table-row { padding: 9px 4px; border-top: 1px solid #f0f0f1; }
 .review-table-row input { min-height: 37px; padding: 0 8px; font-size: 12px; }
 .review-table-row input[type=number] { text-align: right; }
-.review-measure { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 4px; }
+.review-measure { display: grid; grid-template-columns: var(--review-measure-columns, minmax(0, 1.2fr) minmax(0, 1fr)); gap: 4px; }
 .review-price { display: flex; align-items: center; gap: 5px; padding: 0 8px; border: 1px solid #e7e7e9; border-radius: 9px; color: #9899a0; }
 .review-price input { padding: 0; border: 0; box-shadow: none !important; text-align: right; }
 .review-table-foot { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 14px 4px 0; border-top: 1px solid #eee; color: #777880; font-size: 12px; }
@@ -593,6 +591,12 @@
 .receipt-category-list strong { color: #2e2f35; white-space: nowrap; }
 .receipt-category-list small { margin-left: 5px; color: #8b8c92; font-size: 11px; font-weight: 500; }
 .category-empty { color: #8a8b91; font-size: 12px; }
+.receipt-tax-breakdown { margin-top: 22px; padding-top: 16px; border-top: 1px solid #ededee; color: #666870; font-size: 12px; }
+.receipt-tax-breakdown dl { display: grid; gap: 10px; margin: 0; }
+.receipt-tax-breakdown dl > div { display: flex; justify-content: space-between; gap: 12px; }
+.receipt-tax-breakdown dd { margin: 0; color: #24252b; font-weight: 700; white-space: nowrap; }
+.receipt-tax-breakdown p { margin: 10px 0 0; color: #92939a; font-size: 11px; line-height: 1.5; }
+.receipt-tax-breakdown + .receipt-total-rule { margin-top: 14px; }
 .receipt-total-rule { display: flex; justify-content: space-between; gap: 12px; margin-top: 22px; padding-top: 16px; border-top: 1px solid #ededee; color: #666870; font-size: 12px; }
 .receipt-total-rule strong { color: #24252b; font-size: 14px; }
 .review-save-button { width: 100%; min-height: 48px; margin-top: 14px; border-radius: 13px; font-size: 14px; }
@@ -994,11 +998,11 @@ button, input, select, textarea { max-width: 100%; }
 
 /* Reflow each item when a full row no longer fits; keep every field visible. */
 @container receipt-items (max-width: 689px) {
+  .review-table-head, .review-table-row { zoom: 1; }
   .review-table-head { display: none; }
   .review-table-row { grid-template-columns: repeat(4, minmax(0, 1fr)); align-items: start; gap: 12px 8px; padding: 16px 0; }
   .review-cell-label { display: block; margin-bottom: 5px; color: #878890; font-size: 11px; font-weight: 700; }
   .review-product { grid-column: 1 / 4; }
-  .review-product .review-cell-label { margin-bottom: 1px; }
   .review-category { grid-column: 1 / 3; }
   .review-quantity { grid-column: 3; }
   .review-pack { grid-column: 4; }
