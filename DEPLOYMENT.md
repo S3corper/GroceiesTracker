@@ -18,6 +18,8 @@ The publishable Supabase key is a public client identifier. Never put a service-
 
 ## Build
 
+For an installable Android APK with the complete website feature set, use the [Android build guide](artifacts/groceries-tracker-android/README.md). This small WebView app opens the production website directly, using its existing accounts and backend; it needs no separate Supabase keys or Expo build service. The Expo instructions below refer to the earlier native prototype.
+
 Set VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY in artifacts/groceries-tracker/.env.local. For native builds use EXPO_PUBLIC_SUPABASE_URL, EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY, and EXPO_PUBLIC_WEB_URL in artifacts/groceries-tracker-mobile/.env.local. Only public configuration goes in these files. Public production defaults are tracked in .env.production; .env.local can override them. Example variable names are in .env.example files.
 
 From the repository root:
