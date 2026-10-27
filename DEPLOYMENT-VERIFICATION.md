@@ -24,7 +24,7 @@ Sites confirmed a successful public deployment. An unauthenticated browser reach
 
 ## Scope and limitations
 
-The Android build is a JavaScript/Hermes bundle, not an installable APK. No physical Android device or emulator was available for camera/WebView validation. Existing installed clients need the updated build to connect to this cloud backend.
+The original Expo verification covered a JavaScript/Hermes bundle. On 2026-10-26, a separate installable Android app was added in `artifacts/groceries-tracker-android`, using the complete hosted website and the same accounts/data. A signed APK was built locally, and Android 15 emulator tests covered login, session persistence, shared data, backup saving, camera launch/cancel, and device OCR. See the [Android verification report](artifacts/groceries-tracker-android/VERIFICATION.md) for scope and remaining physical-device checks.
 
 This deployment uses Supabase Free. No paid service or automatic upgrade was configured. Free quotas and inactivity pausing still apply; see DEPLOYMENT.md. Email confirmation is disabled as explicitly approved by the owner. Password-reset email delivery is not configured.
 

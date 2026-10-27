@@ -85,16 +85,27 @@ Source code lives on `main`. Publish the contents of the build output to the roo
 
 ## Android client
 
-The Expo/React Native client is in `artifacts/groceries-tracker-mobile`. Its cloud configuration uses `EXPO_PUBLIC_SUPABASE_URL`, `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, and `EXPO_PUBLIC_WEB_URL`; see the directory's `.env.example` and the [deployment notes](DEPLOYMENT.md).
+The installable Android app is in `artifacts/groceries-tracker-android`. It opens the full hosted website, so you sign in with the **same website account** and use the **same saved data and features**. It adds Android camera/file selection, backup saving, clipboard support, and back navigation. Android 8.0 or newer and an internet connection are required.
 
-An Android JavaScript/Hermes bundle has been exported and checked. This is not an installable APK, and camera/WebView behavior has not yet been validated on a physical Android device or emulator. Use the mobile website for browser access. Existing native clients need an updated build to connect to the cloud backend.
+Build a signed APK locally for free with `artifacts/groceries-tracker-android/build-apk.ps1`. The output is `dist/android/grocery-tracker-release.apk`; copy it to your phone and open it to install. No paid build service or Google Play publication is required. See the [Android installation/build guide](artifacts/groceries-tracker-android/README.md) and [verification report](artifacts/groceries-tracker-android/VERIFICATION.md).
+
+### Download and install the testing APK
+
+Scan this QR code with your Android phone to download the APK, or [download it directly](https://github.com/S3corper/GroceiesTracker/raw/refs/heads/android-apk-testing/downloads/android/grocery-tracker-release.apk).
+
+![Scan to download the Grocery Tracker Android app](downloads/android/download-qr.png)
+
+Open the downloaded APK and allow installation from your browser or file manager if Android asks. Then open **Grocery Tracker** and sign in with your existing website account. It uses the same workspace and cloud data as the website. This testing APK connects to the live service, so test using a separate account or workspace if you want to keep test data apart from your usual records. Android 8.0 or newer and an internet connection are required.
+
+The older Expo/React Native prototype remains in `artifacts/groceries-tracker-mobile` for reference. Its Hermes bundle is separate from this installable APK.
 
 ## Project layout
 
 | Path | Purpose |
 | --- | --- |
 | `artifacts/groceries-tracker` | React/Vite website and browser OCR page |
-| `artifacts/groceries-tracker-mobile` | Expo/React Native client |
+| `artifacts/groceries-tracker-android` | Installable Android app using the complete live website |
+| `artifacts/groceries-tracker-mobile` | Earlier Expo/React Native prototype |
 | `artifacts/api-server` | Original local Node/SQLite API |
 | `lib/api-client-react` | Shared API client, cloud transport, and receipt parsing |
 | `supabase/migrations` | Cloud schema, access controls, and API migrations |
