@@ -89,6 +89,14 @@ The installable Android app is in `artifacts/groceries-tracker-android`. It open
 
 Build a signed APK locally for free with `artifacts/groceries-tracker-android/build-apk.ps1`. The output is `dist/android/grocery-tracker-release.apk`; copy it to your phone and open it to install. No paid build service or Google Play publication is required. See the [Android installation/build guide](artifacts/groceries-tracker-android/README.md) and [verification report](artifacts/groceries-tracker-android/VERIFICATION.md).
 
+### Download and install the testing APK
+
+Scan this QR code with your Android phone to download the APK, or [download it directly](https://github.com/S3corper/GroceiesTracker/raw/refs/heads/android-apk-testing/downloads/android/grocery-tracker-release.apk).
+
+![Scan to download the Grocery Tracker Android app](downloads/android/download-qr.png)
+
+Open the downloaded APK and allow installation from your browser or file manager if Android asks. Then open **Grocery Tracker** and sign in with your existing website account. It uses the same workspace and cloud data as the website. This testing APK connects to the live service, so test using a separate account or workspace if you want to keep test data apart from your usual records. Android 8.0 or newer and an internet connection are required.
+
 The older Expo/React Native prototype remains in `artifacts/groceries-tracker-mobile` for reference. Its Hermes bundle is separate from this installable APK.
 
 ## Project layout
