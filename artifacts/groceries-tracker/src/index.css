@@ -901,6 +901,96 @@ html.dark .danger-zone { border-color: #743842; background: #321f24; }
 html.dark .danger-zone strong { color: #ff9ba6; }
 html.dark .danger-modal { border-color: #66333a; background: hsl(var(--card)); }
 html.dark .gemini-key-status.success { color: #73c99d; }
+
+/* Keep custom screens readable when the application theme is dark. */
+html.dark .receipt-upload-page,
+html.dark .receipt-review-page,
+html.dark .space-kind-options legend,
+html.dark .space-kind-options span,
+html.dark .trip-list strong,
+html.dark .trip-merchant,
+html.dark .donut-center strong,
+html.dark .category-chart-legend strong,
+html.dark .danger-modal h2 { color: hsl(var(--foreground)); }
+html.dark .upload-heading-row h1,
+html.dark .review-heading-row h1,
+html.dark .review-table-title h2,
+html.dark .receipt-breakdown-card h3,
+html.dark .receipt-breakdown-total strong,
+html.dark .receipt-breakdown-stats strong,
+html.dark .receipt-category-list strong,
+html.dark .receipt-tax-breakdown dd,
+html.dark .receipt-total-rule strong,
+html.dark .member-identity strong,
+html.dark .account-name-value { color: hsl(var(--foreground)); }
+html.dark .upload-heading-row p,
+html.dark .review-heading-row p,
+html.dark .upload-ocr-setting,
+html.dark .upload-ocr-setting small,
+html.dark .receipt-dropzone p,
+html.dark .receipt-dropzone small,
+html.dark .manual-entry-line,
+html.dark .upload-privacy-note,
+html.dark .receipt-review-fields label,
+html.dark .receipt-review-fields label span,
+html.dark .review-table-title p,
+html.dark .review-table-head,
+html.dark .review-cell-label,
+html.dark .review-table-foot,
+html.dark .receipt-saved-status,
+html.dark .receipt-breakdown-total,
+html.dark .receipt-breakdown-stats span,
+html.dark .receipt-category-list > div,
+html.dark .receipt-category-list small,
+html.dark .category-empty,
+html.dark .receipt-tax-breakdown,
+html.dark .receipt-tax-breakdown p,
+html.dark .receipt-total-rule,
+html.dark .review-save-note,
+html.dark .chart-caption,
+html.dark .trip-list > div,
+html.dark .trip-date,
+html.dark .chart-empty,
+html.dark .donut-center span,
+html.dark .category-chart-legend > div,
+html.dark .category-chart-legend small,
+html.dark .member-identity span,
+html.dark .member-role,
+html.dark .you-badge,
+html.dark .invite-member-panel p,
+html.dark .profile-photo-actions small,
+html.dark .danger-zone p,
+html.dark .account-email-readonly,
+html.dark .account-editor-hint { color: hsl(var(--muted-foreground)); }
+html.dark .upload-ocr-setting select,
+html.dark .receipt-dropzone,
+html.dark .receipt-review-fields,
+html.dark .receipt-review-table-card,
+html.dark .receipt-breakdown-card,
+html.dark .space-kind-options label,
+html.dark .member-card,
+html.dark .danger-modal,
+html.dark .danger-button,
+html.dark .receipt-breakdown-stats div { border-color: hsl(var(--border)); background: hsl(var(--card)); }
+html.dark .upload-ocr-setting select { color: hsl(var(--foreground)); }
+html.dark .text-gray-900,
+html.dark .text-gray-800 { color: hsl(var(--foreground)); }
+html.dark .text-gray-600 { color: hsl(var(--muted-foreground)); }
+html.dark .review-price { color: hsl(var(--muted-foreground)); border-color: hsl(var(--input)); }
+html.dark .review-table-row { border-color: hsl(var(--border)); }
+html.dark .review-table-foot,
+html.dark .receipt-breakdown-total,
+html.dark .receipt-tax-breakdown,
+html.dark .receipt-total-rule,
+html.dark .account-editor-footer { border-color: hsl(var(--border)); }
+html.dark .space-kind-options label.selected { background: hsl(355 25% 24%); }
+html.dark .member-role,
+html.dark .you-badge { background: hsl(var(--secondary)); }
+html.dark .danger-zone { background: #321f24; }
+html.dark .danger-zone strong,
+html.dark .danger-modal-icon { color: #ff9ba6; }
+html.dark .danger-button { color: #ff9aa5; }
+html.dark .profile-menu .menu-item:hover { color: #ff9aa5; }
 @media (max-width: 700px) { .sidebar-bottom { display: block; margin-top: 9px; } .sidebar-bottom .profile-menu { position: static; width: 100%; margin-top: 5px; } }
 @media (max-width: 520px) { .account-editor-content { align-items: flex-start; flex-direction: column; gap: 15px; } .account-photo-picker { align-self: center; } .account-editor-details { width: 100%; } .account-name-row { flex-wrap: wrap; } .account-name-row .account-name-input { flex-basis: 100%; } .account-name-actions { margin-left: auto; } .theme-setting-row { align-items: flex-start; flex-direction: column; } }
 @media (max-width: 540px) {
@@ -1009,4 +1099,19 @@ button, input, select, textarea { max-width: 100%; }
   .review-weight, .review-cost { grid-column: span 2; }
   .review-table-row > .icon-close { grid-column: 4; grid-row: 1; justify-self: end; width: 36px; }
   .review-table-title, .review-table-foot { flex-wrap: wrap; }
+}
+
+/* Native date/time controls follow the page's dark color scheme by default.
+   These receipt editor inputs stay white, so keep their values dark as well. */
+html.dark .receipt-review-fields input,
+html.dark .review-table-row input {
+  color: #27282d !important;
+  -webkit-text-fill-color: #27282d;
+  color-scheme: light;
+  background: #fff;
+}
+html.dark .receipt-review-fields input::placeholder,
+html.dark .review-table-row input::placeholder {
+  color: #6b6c73;
+  opacity: 1;
 }
