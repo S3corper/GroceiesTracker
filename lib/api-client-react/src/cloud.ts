@@ -369,11 +369,11 @@ async function cloudRequest(input: string, options: CustomFetchOptions) {
 
 async function phoneRpc(operation: string, token?: string, spaceId?: string, mimeType?: string, imageBase64?: string) {
   const { data, error } = await client!.rpc("grocery_phone_upload", {
-    operation,
-    token: token ?? null,
-    space_id: spaceId ?? null,
-    mime_type: mimeType ?? null,
-    image_base64: imageBase64 ?? null,
+    p_operation: operation,
+    p_token: token ?? null,
+    p_space_id: spaceId ?? null,
+    p_mime_type: mimeType ?? null,
+    p_image_base64: imageBase64 ?? null,
   });
   failure(error);
   return data;
