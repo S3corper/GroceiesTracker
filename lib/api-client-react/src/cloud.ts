@@ -222,6 +222,14 @@ async function cloudRequest(input: string, options: CustomFetchOptions) {
       throw new Error("Receipt scanner is still loading. Please try again.");
     return scanner(body);
   }
+  const phoneSession = path.match(/^\/api\/receipts\/phone-upload-sessions(?:\/([^/]+)(?:\/(upload|result))?)?$/);
+  if (phoneSession) {
+    const [, token, action] = phoneSession;
+    const operation = !token ? "create" : action === "upload" ? "upload" : action === "result" ? "consume" : "status";
+    if (operation !== "upload" && !(await cloudSessionToken()) && operation !== "status")
+      throw Object.assign(new Error("Sign in to access your household."), { status: 401 });
+    return phoneRpc(operation, token, body.spaceId, body.mimeType, body.imageBase64);
+  }
   if (path === "/api/receipts/gemini-key-test")
     throw new Error("The free cloud edition uses on-device OCR.");
   if (!(await cloudSessionToken()))
@@ -357,4 +365,16 @@ async function cloudRequest(input: string, options: CustomFetchOptions) {
       await client!.storage.from("grocery-photos").remove(uploaded);
     throw error;
   }
+}
+
+async function phoneRpc(operation: string, token?: string, spaceId?: string, mimeType?: string, imageBase64?: string) {
+  const { data, error } = await client!.rpc("grocery_phone_upload", {
+    operation,
+    token: token ?? null,
+    space_id: spaceId ?? null,
+    mime_type: mimeType ?? null,
+    image_base64: imageBase64 ?? null,
+  });
+  failure(error);
+  return data;
 }

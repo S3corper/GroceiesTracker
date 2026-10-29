@@ -12,6 +12,43 @@ const localDate = (value: unknown) => {
   return new Date(`${date}T00:00:00.000Z`).toISOString().slice(0, 10) === date ? date : "";
 };
 const timezoneValid = (timezone: string) => { try { new Intl.DateTimeFormat("en", { timeZone: timezone }); return true; } catch { return false; } };
+const phoneLinkExpired = "The link no longer works. Please try again with a new QR Code.";
+
+router.post("/receipts/phone-upload-sessions", requireUser, (req: UserRequest, res) => {
+  const spaceId = String(req.body?.spaceId ?? "");
+  if (!isMember(spaceId, req.userId!)) { res.status(403).json({ error: "You are not a member of this space." }); return; }
+  db.prepare("DELETE FROM phone_upload_sessions WHERE expires_at<=? OR consumed_at IS NOT NULL").run(isoNow());
+  db.prepare("DELETE FROM phone_upload_sessions WHERE user_id=? AND space_id=?").run(req.userId!, spaceId);
+  const token = randomBytes(32).toString("base64url");
+  const expiresAt = new Date(Date.now() + 5 * 60_000).toISOString();
+  db.prepare("INSERT INTO phone_upload_sessions(token,user_id,space_id,expires_at) VALUES(?,?,?,?)").run(token, req.userId!, spaceId, expiresAt);
+  res.status(201).json({ token, expiresAt });
+});
+
+router.get("/receipts/phone-upload-sessions/:token", (req, res) => {
+  const session = db.prepare("SELECT expires_at,uploaded_at,consumed_at FROM phone_upload_sessions WHERE token=?").get(String(req.params.token)) as any;
+  if (!session || session.expires_at <= isoNow() || session.consumed_at) { res.status(410).json({ error: phoneLinkExpired }); return; }
+  res.json({ status: session.uploaded_at ? "uploaded" : "waiting", expiresAt: session.expires_at });
+});
+
+router.post("/receipts/phone-upload-sessions/:token/upload", (req, res) => {
+  const token = String(req.params.token), session = db.prepare("SELECT expires_at,uploaded_at,consumed_at FROM phone_upload_sessions WHERE token=?").get(token) as any;
+  if (!session || session.expires_at <= isoNow() || session.consumed_at) { res.status(410).json({ error: phoneLinkExpired }); return; }
+  if (session.uploaded_at) { res.status(409).json({ error: "This link has already been used. Please scan a new QR Code." }); return; }
+  const mimeType = String(req.body?.mimeType ?? ""), imageBase64 = String(req.body?.imageBase64 ?? "");
+  if (!["image/jpeg", "image/png", "image/webp"].includes(mimeType) || !/^[a-z0-9+/]+=*$/i.test(imageBase64) || imageBase64.length > 5_592_408) { res.status(400).json({ error: "Choose a JPG, PNG, or WebP receipt photo under 4 MB." }); return; }
+  const result = db.prepare("UPDATE phone_upload_sessions SET mime_type=?,image_data=?,uploaded_at=? WHERE token=? AND uploaded_at IS NULL AND consumed_at IS NULL AND expires_at>?").run(mimeType, imageBase64, isoNow(), token, isoNow());
+  if (!result.changes) { res.status(410).json({ error: phoneLinkExpired }); return; }
+  res.status(201).json({ status: "uploaded" });
+});
+
+router.get("/receipts/phone-upload-sessions/:token/result", requireUser, (req: UserRequest, res) => {
+  const session = db.prepare("SELECT user_id,space_id,expires_at,mime_type,image_data,uploaded_at,consumed_at FROM phone_upload_sessions WHERE token=?").get(String(req.params.token)) as any;
+  if (!session || session.user_id !== req.userId || session.expires_at <= isoNow() || session.consumed_at) { res.status(410).json({ error: phoneLinkExpired }); return; }
+  if (!session.uploaded_at) { res.status(404).json({ error: "No receipt photo has been uploaded yet." }); return; }
+  db.prepare("UPDATE phone_upload_sessions SET consumed_at=?,image_data=NULL WHERE token=?").run(isoNow(), String(req.params.token));
+  res.json({ mimeType: session.mime_type, imageBase64: session.image_data });
+});
 function computeUnit(item: any) {
   const name = String(item.name ?? "").trim();
   const variant = String(item.variant ?? "").trim();
