@@ -1,4 +1,5 @@
 import { createContext, type ReactNode, useCallback, useContext, useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { customFetch, setAuthTokenGetter, setBaseUrl, cloudEnabled, cloudSignOut, onCloudChange, refreshCloud } from '@workspace/api-client-react';
 import { QRCodeSVG } from 'qrcode.react';
@@ -244,6 +245,41 @@ function Sidebar({
   onSelectSpace: (space: LocalSpace) => void;
 }) {
   return (
+    <>
+    <header className="mobile-app-header" aria-label="App navigation">
+      <div className="mobile-app-header-top">
+        <div className="mobile-workspace-wrap">
+          <button className="mobile-workspace-button" onClick={() => { setWorkspaceOpen(!workspaceOpen); setProfileOpen(false); }} data-testid="button-workspace-selector-mobile" aria-expanded={workspaceOpen}>
+            <span className="mobile-workspace-name">{activeSpace?.name ?? 'Local space'}</span><ChevronDown size={18} strokeWidth={2.2}/>
+          </button>
+          {workspaceOpen && <div className="workspace-menu mobile-workspace-menu" data-testid="menu-workspace-mobile">
+            {spaces.map((space) => <button className="workspace-menu-item" key={space.id} onClick={() => { onSelectSpace(space); setWorkspaceOpen(false); onToast(`${space.name} selected`); }}><span>{space.name}</span><small className={`workspace-kind ${space.kind}`}>{space.kind === 'household' ? 'Household' : 'Personal'}</small></button>)}
+            <div className="workspace-menu-divider"/>
+            <button className="workspace-menu-create" onClick={() => { setWorkspaceOpen(false); onAddSpace(); }} data-testid="button-add-space-mobile"><Plus size={15}/><span>Add new workspace</span></button>
+          </div>}
+        </div>
+        <div className="mobile-header-actions">
+          <div className="mobile-account-wrap">
+            <button className="mobile-header-icon" aria-label="Account settings" aria-expanded={profileOpen} data-testid="button-user-menu-mobile" onClick={() => { setProfileOpen(!profileOpen); setWorkspaceOpen(false); }}>
+              {profileImage ? <img className="mobile-account-photo" src={profileImage} alt=""/> : <UserRound size={21} strokeWidth={2.2}/>}
+            </button>
+            {profileOpen && <div className="profile-menu mobile-profile-menu" data-testid="menu-user-mobile">
+              <button className="menu-item" onClick={() => { setProfileOpen(false); onSignOut(); }} data-testid="menu-switch-account-mobile"><UserRound size={14} style={{ verticalAlign: 'middle', marginRight: 7 }}/> Switch account</button>
+              <button className="menu-item" onClick={() => { setProfileOpen(false); onEditAccount(); }} data-testid="menu-edit-account-mobile"><Settings2 size={14} style={{ verticalAlign: 'middle', marginRight: 7 }}/> Edit account</button>
+              <div className="profile-menu-divider"/>
+              <button className="menu-item" onClick={() => { setProfileOpen(false); onSignOut(); }} data-testid="menu-sign-out-mobile"><LogOut size={14} style={{ verticalAlign: 'middle', marginRight: 7 }}/> Sign out</button>
+            </div>}
+          </div>
+          <button className={`mobile-header-icon ${activeSection === 'Settings' ? 'active' : ''}`} aria-label="General settings" title="General settings" data-testid="button-general-settings-mobile" onClick={() => { setActiveSection('Settings'); onToast('Settings view selected'); }}><Settings2 size={21} strokeWidth={2.2}/></button>
+          <button className="mobile-header-icon mobile-add-receipt" aria-label="Add receipt" title="Add receipt" data-testid="button-add-receipt-mobile" onClick={onAddReceipt}><Plus size={22} strokeWidth={2.5}/></button>
+        </div>
+      </div>
+      <nav className="mobile-section-nav" aria-label="Main sections">
+        {navItems.map(({ label, icon: Icon }) => <button className={`mobile-section-button ${activeSection === label ? 'active' : ''}`} key={label} onClick={() => { setActiveSection(label); onToast(label === 'Dashboard' ? 'Dashboard selected' : `${label} view selected`); }} data-testid={`button-mobile-nav-${label.toLowerCase().replaceAll(' ', '-')}`} aria-current={activeSection === label ? 'page' : undefined}>
+          <Icon size={19} strokeWidth={1.9}/><span>{label}</span>
+        </button>)}
+      </nav>
+    </header>
     <aside id="primary-navigation" className="sidebar" aria-label="Primary navigation">
       <Brand />
       <div className="workspace-row">
@@ -318,6 +354,7 @@ function Sidebar({
         )}
       </div>
     </aside>
+    </>
   );
 }
 
@@ -1133,7 +1170,7 @@ function Dashboard() {
       />
       {createSpaceOpen && <CreateSpaceModal defaultKind={space?.kind ?? 'household'} onClose={() => setCreateSpaceOpen(false)} onCreate={createSpace}/>}
       {deleteTarget && <div className="modal-overlay danger-overlay" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget && !deleting) { setDeleteTarget(null); setDeleteConfirmation(''); } }}><section className="danger-modal" role="alertdialog" aria-modal="true" aria-labelledby="danger-modal-title"><div className="danger-modal-icon"><Trash2 size={20}/></div><h2 id="danger-modal-title">Delete {deleteTarget === 'account' ? 'account' : 'workspace'}?</h2><p>{deleteTarget === 'account' ? 'Your account and private workspaces will be deleted. Household workspaces with other members will remain available and transfer to another member.' : `“${space?.name ?? 'This workspace'}” and all of its receipts, grocery items, and photos will be permanently deleted for every member.`}</p><label className="field-label">Type <strong>{deleteTarget === 'account' ? 'DELETE ACCOUNT' : space?.name}</strong> to confirm<input className="field-input" autoComplete="off" value={deleteConfirmation} onChange={(event) => setDeleteConfirmation(event.target.value)} placeholder={deleteTarget === 'account' ? 'DELETE ACCOUNT' : space?.name ?? ''}/></label><div className="danger-modal-actions"><button className="secondary-button" disabled={deleting} onClick={() => { setDeleteTarget(null); setDeleteConfirmation(''); }}>Cancel</button><button className="danger-button" disabled={deleting || (deleteTarget === 'account' ? deleteConfirmation !== 'DELETE ACCOUNT' : deleteConfirmation !== space?.name)} onClick={deleteTarget === 'account' ? deleteAccount : deleteWorkspace}>{deleting ? 'Deleting…' : `Delete ${deleteTarget === 'account' ? 'account' : 'workspace'}`}</button></div></section></div>}
-      {toast && <div className="toast-note" role="status" data-testid="status-toast">{toast}</div>}
+      {toast && createPortal(<div className="toast-note" role="status" data-testid="status-toast">{toast}</div>, document.body)}
     </div>
   );
 }
