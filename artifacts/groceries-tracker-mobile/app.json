@@ -9,7 +9,7 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "splash": {
-      "image": "./assets/images/groceries-icon.png",
+      "image": "./assets/images/groceries-splash.png",
       "resizeMode": "contain",
       "backgroundColor": "#f4f2ef"
     },
@@ -20,7 +20,7 @@
       "package": "com.groceriestracker.app",
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/groceries-icon.png",
-        "backgroundColor": "#f4f2ef"
+        "backgroundColor": "#ffffff"
       }
     },
     "web": {

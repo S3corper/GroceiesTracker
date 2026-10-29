@@ -527,6 +527,32 @@
 .upload-ocr-setting select { min-height: 42px; padding: 0 12px; border: 1px solid #e7e7e9; border-radius: 11px; color: #34353b; background: #fff; font-size: 13px; }
 .upload-ocr-setting small { color: #85858b; font-size: 11px; font-weight: 500; line-height: 1.4; }
 .receipt-dropzone { min-height: 390px; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px; border: 2px dashed #e5e5e8; border-radius: 22px; background: #fff; text-align: center; transition: .18s ease; }
+.receipt-upload-options { display: grid; grid-template-columns: minmax(0, 1fr) 286px; gap: 20px; align-items: stretch; }
+.receipt-upload-options .receipt-dropzone { min-height: 390px; }
+.phone-upload-card { display: flex; min-width: 0; flex-direction: column; align-items: center; justify-content: flex-start; padding: 38px 24px; border: 1px solid #efeff1; border-radius: 22px; background: #fff; text-align: center; }
+.phone-upload-icon { display: grid; width: 66px; height: 66px; margin-bottom: 24px; place-items: center; border-radius: 15px; color: #666; background: #f6f6f7; }
+.phone-upload-card h2 { margin: 0; font: 700 20px/1.25 'Manrope',sans-serif; letter-spacing: -.02em; }
+.phone-upload-card > p { margin: 12px 0 20px; color: #85868d; font-size: 14px; line-height: 1.55; }
+.phone-upload-card > .secondary-button { margin-top: 10px; }
+.phone-upload-qr { max-width: 100%; padding: 7px; border: 1px solid #eee; border-radius: 12px; }
+.phone-upload-countdown { margin-top: 15px; color: #74757c; }
+.phone-upload-card > span:last-of-type { margin-top: 5px; color: #85868d; font-size: 13px; }
+.phone-upload-expired { color: #a51e2c !important; }
+.phone-upload-error { color: #a51e2c !important; font-size: 13px !important; }
+.phone-receipt-page { width: min(100% - 36px, 620px); min-height: 100vh; margin: 0 auto; padding: 54px 0; color: #172033; font-family: 'Manrope',sans-serif; }
+.phone-receipt-brand { display: flex; align-items: center; gap: 14px; margin: 0 0 34px; }
+.phone-brand-mark { display: grid; width: 52px; height: 52px; place-items: center; border: 2px solid #c92536; border-radius: 50%; color: #c92536; font-size: 27px; line-height: 1; }
+.phone-receipt-brand div { display: grid; gap: 4px; }
+.phone-receipt-brand strong { font-size: 23px; }
+.phone-receipt-brand div span, .phone-receipt-card > p { color: #74757c; }
+.phone-receipt-card { padding: 32px; border: 1px solid #f0f0f2; border-radius: 22px; background: #fff; box-shadow: 0 2px 4px #1111110a; }
+.phone-receipt-card h1 { margin: 0 0 11px; font-size: 22px; }
+.phone-receipt-card > p { margin: 0 0 24px; font-size: 16px; line-height: 1.55; }
+.phone-primary-button, .phone-secondary-button { display: block; width: 100%; min-height: 54px; margin-top: 12px; padding: 10px 18px; border: 1px solid #dedee1; border-radius: 999px; color: #172033; background: white; font: 600 16px 'Manrope',sans-serif; }
+.phone-primary-button { border-color: #c91f25; color: #fff; background: #c91f25; }
+.phone-primary-button:disabled, .phone-secondary-button:disabled { opacity: .6; }
+.phone-receipt-card small { display: block; margin-top: 22px; color: #74757c; font-size: 13px; line-height: 1.5; }
+.phone-receipt-card [role="alert"] { color: #a51e2c; line-height: 1.5; }
 .receipt-dropzone.dragging { border-color: #ca1e2d; background: #fff8f8; box-shadow: 0 0 0 5px #c91f3210; }
 .upload-icon { width: 70px; height: 70px; display: grid; place-items: center; border-radius: 22px; color: #c91f32; background: #fff0f1; }
 .receipt-dropzone h2 { margin: 22px 0 0; font: 700 22px/1.2 'Manrope',sans-serif; letter-spacing: -.025em; }
@@ -628,6 +654,11 @@
   .upload-heading-row { align-items: flex-start; flex-direction: column; gap: 18px; }
   .upload-ocr-setting { width: 100%; }
   .receipt-dropzone { min-height: 320px; padding: 24px 16px; }
+  .receipt-upload-options { grid-template-columns: 1fr; }
+  .receipt-upload-options .receipt-dropzone { min-height: 320px; }
+  .phone-upload-card { padding: 28px 22px; }
+  .phone-receipt-page { padding-top: 34px; }
+  .phone-receipt-card { padding: 24px; }
   .receipt-dropzone h2 { font-size: 19px; }
   .receipt-dropzone p { max-width: 330px; font-size: 13px; line-height: 1.5; }
   .upload-actions { width: 100%; flex-direction: column; }
@@ -1114,4 +1145,119 @@ html.dark .receipt-review-fields input::placeholder,
 html.dark .review-table-row input::placeholder {
   color: #6b6c73;
   opacity: 1;
+}
+
+.mobile-app-header { display: none; }
+
+@media (max-width: 700px) {
+  .sidebar { display: none; }
+  .mobile-app-header {
+    position: relative;
+    z-index: 31;
+    display: block;
+    width: 100%;
+    padding: max(12px, env(safe-area-inset-top, 0px)) 14px 0;
+    background: hsl(var(--background));
+    border-bottom: 1px solid hsl(var(--border));
+  }
+  .mobile-app-header-top {
+    display: flex;
+    min-height: 48px;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+  }
+  .mobile-workspace-wrap, .mobile-account-wrap { position: relative; }
+  .mobile-workspace-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    max-width: min(58vw, 320px);
+    min-height: 44px;
+    padding: 0 5px;
+    border: 0;
+    color: hsl(var(--foreground));
+    background: transparent;
+    font-family: 'Manrope', sans-serif;
+    font-size: clamp(20px, 5.6vw, 25px);
+    font-weight: 800;
+    letter-spacing: -.04em;
+  }
+  .mobile-workspace-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .mobile-header-actions { display: flex; align-items: center; gap: 8px; }
+  .mobile-header-icon {
+    display: grid;
+    width: 42px;
+    height: 42px;
+    flex: 0 0 42px;
+    place-items: center;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    color: hsl(var(--foreground));
+    background: hsl(var(--secondary));
+  }
+  .mobile-header-icon:hover, .mobile-header-icon.active { background: hsl(var(--accent)); }
+  .mobile-account-photo { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; }
+  .mobile-add-receipt { color: hsl(var(--primary-foreground)); background: hsl(var(--primary)); }
+  .mobile-add-receipt:hover { background: hsl(var(--primary)); filter: brightness(.94); }
+  .mobile-app-header .mobile-workspace-menu {
+    top: calc(100% + 1px);
+    left: 0;
+    width: min(260px, calc(100vw - 28px));
+  }
+  .mobile-app-header .mobile-profile-menu {
+    top: calc(100% + 7px);
+    right: -48px;
+    bottom: auto;
+    left: auto;
+    width: 190px;
+  }
+  .mobile-section-nav {
+    display: flex;
+    align-items: stretch;
+    gap: 4px;
+    margin-top: 8px;
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+  .mobile-section-nav::-webkit-scrollbar { display: none; }
+  .mobile-section-button {
+    display: flex;
+    min-width: 73px;
+    min-height: 62px;
+    flex: 1 0 auto;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    padding: 6px 8px 8px;
+    border: 0;
+    border-bottom: 2px solid transparent;
+    border-radius: 0;
+    color: hsl(var(--muted-foreground));
+    background: transparent;
+    font-size: 11px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  .mobile-section-button:hover { color: hsl(var(--foreground)); background: hsl(var(--secondary)); }
+  .mobile-section-button.active { color: hsl(var(--primary)); border-bottom-color: hsl(var(--primary)); }
+  .sidebar-hidden .mobile-app-header { display: none; }
+  .app-shell:not(.sidebar-hidden) > .main { width: 100%; margin-left: 0; padding-top: 18px; }
+  .toast-note {
+    position: fixed;
+    z-index: 10000;
+    left: 50%;
+    right: auto;
+    bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+    transform: translate3d(-50%, 0, 0);
+    width: min(520px, calc(100vw - 28px));
+    max-width: calc(100vw - 28px);
+    text-align: center;
+    line-height: 1.45;
+    pointer-events: none;
+  }
 }

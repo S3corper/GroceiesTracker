@@ -1,4 +1,5 @@
 import { createContext, type ReactNode, useCallback, useContext, useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { customFetch, setAuthTokenGetter, setBaseUrl, cloudEnabled, cloudSignOut, onCloudChange, refreshCloud } from '@workspace/api-client-react';
 import { QRCodeSVG } from 'qrcode.react';
@@ -30,6 +31,7 @@ import {
   LogOut,
   Trash2,
   Camera,
+  Smartphone,
   Moon,
   Sun,
 } from 'lucide-react';
@@ -183,6 +185,8 @@ function LocalAccess({ children }: { children: ReactNode }) {
     }
   };
   const space = spaces.find((entry) => entry.id === selectedId) ?? spaces.find((entry) => entry.kind === 'household') ?? null;
+  const mobileUploadToken = new URLSearchParams(window.location.search).get('mobileUpload');
+  if (mobileUploadToken) return <PhoneReceiptUpload token={mobileUploadToken}/>;
   if (!token) return <main className="local-access"><form className="local-access-card" onSubmit={authenticate}><div className="brand"><span className="brand-mark">G</span><span>GroceriesTracker</span></div><h1>{register ? 'Create your household' : 'Welcome to Grocery Tracker'}</h1><p>{cloudEnabled() ? 'Your groceries, shared with your household and synced across devices.' : 'Connect to your household server.'}</p>{!cloudEnabled() && <label>Server address<input className="field-input" value={host} onChange={(e) => setHost(e.target.value)} placeholder="http://192.168.1.20:3000" /></label>}{register && <label>Your name<input className="field-input" required maxLength={60} value={displayName} onChange={(e) => setDisplayName(e.target.value)} placeholder="How your household knows you" /></label>}<label>Email<input className="field-input" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} /></label><label>Password<input className="field-input" type="password" required minLength={10} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="At least 10 characters" /></label>{register && <label>Household name<input className="field-input" value={household} onChange={(e) => setHousehold(e.target.value)} /></label>}{error && <p className="local-error">{error}</p>}<button className="primary-button" disabled={busy}>{busy ? 'Connecting…' : register ? 'Create account' : 'Sign in'}</button><button type="button" className="text-button" onClick={() => { setRegister(!register); setError(''); }}>{register ? 'I already have an account' : 'First time? Create the household owner account'}</button></form></main>;
   const safeDisplayName = accountDisplayName.trim() && !['undefined', 'null'].includes(accountDisplayName.trim().toLowerCase()) ? accountDisplayName : accountEmail.split('@')[0] || 'Grocery member';
   return <SessionContext.Provider value={{ token, email: accountEmail, displayName: safeDisplayName, profileImage: accountProfileImage, darkMode, setDarkMode, space, spaces, setSpace: (next) => { setSelectedId(next.id); setSpaces((current) => current.some((entry) => entry.id === next.id) ? current.map((entry) => entry.id === next.id ? { ...entry, ...next } : entry) : [...current, next]); localStorage.setItem('gt-space', next.id); }, removeSpace, setDisplayName: updateDisplayName, setProfileImage: updateProfileImage, signOut }}>{children}</SessionContext.Provider>;
@@ -244,6 +248,41 @@ function Sidebar({
   onSelectSpace: (space: LocalSpace) => void;
 }) {
   return (
+    <>
+    <header className="mobile-app-header" aria-label="App navigation">
+      <div className="mobile-app-header-top">
+        <div className="mobile-workspace-wrap">
+          <button className="mobile-workspace-button" onClick={() => { setWorkspaceOpen(!workspaceOpen); setProfileOpen(false); }} data-testid="button-workspace-selector-mobile" aria-expanded={workspaceOpen}>
+            <span className="mobile-workspace-name">{activeSpace?.name ?? 'Local space'}</span><ChevronDown size={18} strokeWidth={2.2}/>
+          </button>
+          {workspaceOpen && <div className="workspace-menu mobile-workspace-menu" data-testid="menu-workspace-mobile">
+            {spaces.map((space) => <button className="workspace-menu-item" key={space.id} onClick={() => { onSelectSpace(space); setWorkspaceOpen(false); onToast(`${space.name} selected`); }}><span>{space.name}</span><small className={`workspace-kind ${space.kind}`}>{space.kind === 'household' ? 'Household' : 'Personal'}</small></button>)}
+            <div className="workspace-menu-divider"/>
+            <button className="workspace-menu-create" onClick={() => { setWorkspaceOpen(false); onAddSpace(); }} data-testid="button-add-space-mobile"><Plus size={15}/><span>Add new workspace</span></button>
+          </div>}
+        </div>
+        <div className="mobile-header-actions">
+          <div className="mobile-account-wrap">
+            <button className="mobile-header-icon" aria-label="Account settings" aria-expanded={profileOpen} data-testid="button-user-menu-mobile" onClick={() => { setProfileOpen(!profileOpen); setWorkspaceOpen(false); }}>
+              {profileImage ? <img className="mobile-account-photo" src={profileImage} alt=""/> : <UserRound size={21} strokeWidth={2.2}/>}
+            </button>
+            {profileOpen && <div className="profile-menu mobile-profile-menu" data-testid="menu-user-mobile">
+              <button className="menu-item" onClick={() => { setProfileOpen(false); onSignOut(); }} data-testid="menu-switch-account-mobile"><UserRound size={14} style={{ verticalAlign: 'middle', marginRight: 7 }}/> Switch account</button>
+              <button className="menu-item" onClick={() => { setProfileOpen(false); onEditAccount(); }} data-testid="menu-edit-account-mobile"><Settings2 size={14} style={{ verticalAlign: 'middle', marginRight: 7 }}/> Edit account</button>
+              <div className="profile-menu-divider"/>
+              <button className="menu-item" onClick={() => { setProfileOpen(false); onSignOut(); }} data-testid="menu-sign-out-mobile"><LogOut size={14} style={{ verticalAlign: 'middle', marginRight: 7 }}/> Sign out</button>
+            </div>}
+          </div>
+          <button className={`mobile-header-icon ${activeSection === 'Settings' ? 'active' : ''}`} aria-label="General settings" title="General settings" data-testid="button-general-settings-mobile" onClick={() => { setActiveSection('Settings'); onToast('Settings view selected'); }}><Settings2 size={21} strokeWidth={2.2}/></button>
+          <button className="mobile-header-icon mobile-add-receipt" aria-label="Add receipt" title="Add receipt" data-testid="button-add-receipt-mobile" onClick={onAddReceipt}><Plus size={22} strokeWidth={2.5}/></button>
+        </div>
+      </div>
+      <nav className="mobile-section-nav" aria-label="Main sections">
+        {navItems.map(({ label, icon: Icon }) => <button className={`mobile-section-button ${activeSection === label ? 'active' : ''}`} key={label} onClick={() => { setActiveSection(label); onToast(label === 'Dashboard' ? 'Dashboard selected' : `${label} view selected`); }} data-testid={`button-mobile-nav-${label.toLowerCase().replaceAll(' ', '-')}`} aria-current={activeSection === label ? 'page' : undefined}>
+          <Icon size={19} strokeWidth={1.9}/><span>{label}</span>
+        </button>)}
+      </nav>
+    </header>
     <aside id="primary-navigation" className="sidebar" aria-label="Primary navigation">
       <Brand />
       <div className="workspace-row">
@@ -318,6 +357,7 @@ function Sidebar({
         )}
       </div>
     </aside>
+    </>
   );
 }
 
@@ -669,11 +709,78 @@ function ReceiptReview({ draft, timezone, workspaceName, onSave, onCancel }: { d
 ))}</div><div className="review-table-foot"><button className="text-button" onClick={addItem}><Plus size={14}/> Add another grocery item</button><div>Items subtotal <strong>${sum.toFixed(2)}</strong></div></div></article><aside className="receipt-breakdown-card"><div className="receipt-saved-status"><span className="status-dot"/>Ready to save</div><div className="receipt-breakdown-total"><span>Receipt total</span><strong>${Number(receipt.amount || 0).toFixed(2)}</strong></div><div className="receipt-breakdown-stats"><div><strong>{receipt.items.length}</strong><span>Items</span></div><div><strong>{categories.length}</strong><span>Categories</span></div></div><h3>Spending by category</h3>{categories.length ? <><div className="category-stack">{categories.map(([category, value]) => <span key={category} style={{ width: `${sum ? value / sum * 100 : 0}%`, background: categoryColor(category) }} title={`${category} ${sum ? Math.round(value / sum * 100) : 0}%`}/>)}</div><div className="receipt-category-list">{categories.map(([category, value]) => <div key={category}><span className="receipt-category-name"><i style={{ background: categoryColor(category) }}/>{category || 'Other'}</span><strong>{sum ? Math.round(value / sum * 100) : 0}% <small>${value.toFixed(2)}</small></strong></div>)}</div></> : <p className="category-empty">Categories appear here as items are recognized.</p>}<ReceiptTaxBreakdown total={receipt.amount} subtotal={sum}/><div className="receipt-total-rule"><span>Save this receipt</span><strong>${Number(receipt.amount || 0).toFixed(2)}</strong></div><button className="primary-button review-save-button" disabled={!receipt.store.trim() || receipt.amount < 0} onClick={() => onSave(receipt)}>Save receipt</button><p className="review-save-note">You can edit the date and grocery details later.</p></aside></div></section>;
 }
 
-function ReceiptUploadPage({ isScanning, onFile, onManual, onClose, provider, setProvider, hasGeminiKey }: { isScanning: boolean; onFile: (file: File) => void; onManual: () => void; onClose: () => void; provider: 'local' | 'gemini'; setProvider: (provider: 'local' | 'gemini') => void; hasGeminiKey: boolean }) {
+const PHONE_LINK_EXPIRED = 'The link no longer works. Please try again with a new QR Code.';
+
+function fileAsBase64(file: File) {
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result).split(',')[1] ?? '');
+    reader.onerror = () => reject(new Error('Could not read that photo. Please try again.'));
+    reader.readAsDataURL(file);
+  });
+}
+
+function PhoneReceiptUpload({ token }: { token: string }) {
+  const [busy, setBusy] = useState(false);
+  const [uploaded, setUploaded] = useState(false);
+  const [error, setError] = useState('');
+  const cameraRef = useRef<HTMLInputElement>(null);
+  const galleryRef = useRef<HTMLInputElement>(null);
+  useEffect(() => { customFetch<{ status: string }>(`/api/receipts/phone-upload-sessions/${encodeURIComponent(token)}`).then((result) => { if (result.status === 'uploaded') setUploaded(true); }).catch((cause) => setError(cause instanceof Error ? cause.message : PHONE_LINK_EXPIRED)); }, [token]);
+  const upload = async (file?: File) => {
+    if (!file) return;
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type) || file.size > 4 * 1024 * 1024) { setError('Choose a JPG, PNG, or WebP receipt photo under 4 MB.'); return; }
+    setBusy(true); setError('');
+    try {
+      const imageBase64 = await fileAsBase64(file);
+      await customFetch(`/api/receipts/phone-upload-sessions/${encodeURIComponent(token)}/upload`, { method: 'POST', body: JSON.stringify({ mimeType: file.type, imageBase64 }) });
+      setUploaded(true);
+    } catch (cause) { setError(cause instanceof Error ? cause.message : 'Could not upload that receipt. Please try again.'); }
+    finally { setBusy(false); }
+  };
+  return <main className="phone-receipt-page"><header className="phone-receipt-brand"><span className="phone-brand-mark">•</span><div><strong>Groceries Tracker</strong><span>Add a receipt from your phone</span></div></header><section className="phone-receipt-card">{uploaded ? <><h1>Receipt sent</h1><p>Your photo is on its way to Grocery Tracker. You can close this page.</p></> : error ? <><h1>Link unavailable</h1><p role="alert">{error.includes('no longer works') ? PHONE_LINK_EXPIRED : error}</p></> : <><h1>Take a photo of your receipt</h1><p>Lay it flat in good light. It goes straight to your account.</p><button className="phone-primary-button" disabled={busy} onClick={() => cameraRef.current?.click()}>{busy ? 'Uploading…' : 'Take a photo'}</button><button className="phone-secondary-button" disabled={busy} onClick={() => galleryRef.current?.click()}>Choose a photo</button><small>JPG, PNG, or WebP up to 4 MB. This link works for one receipt.</small>{error && <p className="phone-upload-error" role="alert">{error}</p>}<input ref={cameraRef} hidden type="file" accept="image/*" capture="environment" onChange={(event) => { const file = event.target.files?.[0]; event.target.value = ''; void upload(file); }}/><input ref={galleryRef} hidden type="file" accept="image/*" onChange={(event) => { const file = event.target.files?.[0]; event.target.value = ''; void upload(file); }}/></>}</section></main>;
+}
+
+function ReceiptUploadPage({ isScanning, onFile, onManual, onClose, provider, setProvider, hasGeminiKey, spaceId }: { isScanning: boolean; onFile: (file: File) => void; onManual: () => void; onClose: () => void; provider: 'local' | 'gemini'; setProvider: (provider: 'local' | 'gemini') => void; hasGeminiKey: boolean; spaceId: string }) {
   const uploadRef = useRef<HTMLInputElement>(null);
   const cameraRef = useRef<HTMLInputElement>(null);
   const [dragging, setDragging] = useState(false);
-  return <section className="receipt-upload-page"><div className="upload-page-heading"><button className="back-link" onClick={onClose}>‹ Back to receipts</button><div className="upload-heading-row"><div><div className="section-kicker">CAPTURE YOUR SHOP</div><h1>Add New Receipt</h1><p>Take a clear photo or upload a receipt image. We’ll turn it into an editable grocery record.</p></div><label className="upload-ocr-setting">Recognition<select value={provider} onChange={(event) => setProvider(event.target.value as 'local' | 'gemini')}><option value="local">Offline OCR</option>{!cloudEnabled() && <option value="gemini">Gemini · sends photo to Google</option>}</select><small>{provider === 'gemini' ? hasGeminiKey ? 'Gemini key is set for this browser.' : 'Add your key in Settings to use Gemini.' : cloudEnabled() ? 'Free recognition runs on this device.' : 'Runs on this host without sending the photo to a cloud service.'}</small></label></div></div><div className={`receipt-dropzone ${dragging ? 'dragging' : ''}`} onDragOver={(event) => { event.preventDefault(); setDragging(true); }} onDragLeave={() => setDragging(false)} onDrop={(event) => { event.preventDefault(); setDragging(false); const file = event.dataTransfer.files[0]; if (file) onFile(file); }}><div className="upload-icon"><FileText size={28}/></div><h2>{isScanning ? 'Reading your receipt…' : 'Upload a receipt image'}</h2><p>{isScanning ? provider === 'gemini' ? 'Gemini is extracting store, date, items, and prices.' : 'Offline OCR is extracting store, date, items, and prices.' : 'Drag and drop a receipt image here, or choose how you want to add it.'}</p><div className="upload-actions"><button className="primary-button" onClick={() => cameraRef.current?.click()} disabled={isScanning}><ReceiptText size={16}/> Take a photo</button><button className="secondary-button" onClick={() => uploadRef.current?.click()} disabled={isScanning}><Plus size={16}/> Upload an image</button></div><small>JPG, PNG, or WEBP · Clear, well-lit photos work best</small><input ref={cameraRef} hidden type="file" accept="image/*" capture="environment" onChange={(event) => { const file = event.target.files?.[0]; event.target.value = ''; if (file) onFile(file); }}/><input ref={uploadRef} hidden type="file" accept="image/*" onChange={(event) => { const file = event.target.files?.[0]; event.target.value = ''; if (file) onFile(file); }}/></div><div className="manual-entry-line">No receipt image? <button className="text-button" onClick={onManual}>Enter receipt manually</button></div><div className="upload-privacy-note"><span className="status-dot"/> {cloudEnabled() ? 'Recognition runs on this device. Saving a receipt syncs it privately with your household.' : 'Offline OCR keeps your receipt photo on this local server. Gemini is optional and sends the image to Google.'}</div></section>;
+  const [phoneSession, setPhoneSession] = useState<{ token: string; expiresAt: string } | null>(null);
+  const [phoneError, setPhoneError] = useState('');
+  const [secondsLeft, setSecondsLeft] = useState(0);
+  const [creatingPhoneSession, setCreatingPhoneSession] = useState(false);
+  const phoneLink = phoneSession ? (() => { const url = new URL(window.location.href); url.search = ''; url.searchParams.set('mobileUpload', phoneSession.token); if (!cloudEnabled()) url.searchParams.set('api', localStorage.getItem('gt-host') ?? 'http://localhost:3000'); return url.toString(); })() : '';
+  const showPhoneQr = async () => {
+    setCreatingPhoneSession(true); setPhoneError('');
+    try { const result = await customFetch<{ token: string; expiresAt: string }>('/api/receipts/phone-upload-sessions', { method: 'POST', body: JSON.stringify({ spaceId }) }); setPhoneSession(result); }
+    catch (cause) { setPhoneError(cause instanceof Error ? cause.message : 'Could not create a QR Code. Please try again.'); }
+    finally { setCreatingPhoneSession(false); }
+  };
+  useEffect(() => {
+    if (!phoneSession) return;
+    const updateCountdown = () => setSecondsLeft(Math.max(0, Math.ceil((new Date(phoneSession.expiresAt).getTime() - Date.now()) / 1000)));
+    updateCountdown(); const timer = window.setInterval(updateCountdown, 1000); return () => window.clearInterval(timer);
+  }, [phoneSession]);
+  useEffect(() => {
+    if (!phoneSession || isScanning) return;
+    let active = true, shouldPoll = true;
+    const poll = async () => {
+      if (!shouldPoll) return;
+      try {
+        const status = await customFetch<{ status: string }>(`/api/receipts/phone-upload-sessions/${encodeURIComponent(phoneSession.token)}`);
+        if (status.status === 'uploaded' && active) {
+          const result = await customFetch<{ mimeType: string; imageBase64: string }>(`/api/receipts/phone-upload-sessions/${encodeURIComponent(phoneSession.token)}/result`);
+          if (!active) return;
+          const binary = atob(result.imageBase64), bytes = new Uint8Array(binary.length);
+          for (let index = 0; index < binary.length; index++) bytes[index] = binary.charCodeAt(index);
+          setPhoneSession(null); onFile(new File([bytes], `receipt.${result.mimeType.split('/')[1]}`, { type: result.mimeType }));
+        }
+      } catch (cause) { if (active) { shouldPoll = false; setPhoneError(cause instanceof Error ? cause.message : PHONE_LINK_EXPIRED); } }
+    };
+    void poll(); const timer = window.setInterval(() => void poll(), 2000); return () => { active = false; window.clearInterval(timer); };
+  }, [phoneSession, isScanning]);
+  const expired = Boolean(phoneSession && secondsLeft === 0);
+  return <section className="receipt-upload-page"><div className="upload-page-heading"><button className="back-link" onClick={onClose}>‹ Back to receipts</button><div className="upload-heading-row"><div><div className="section-kicker">CAPTURE YOUR SHOP</div><h1>Add New Receipt</h1><p>Take a clear photo or upload a receipt image. We’ll turn it into an editable grocery record.</p></div><label className="upload-ocr-setting">Recognition<select value={provider} onChange={(event) => setProvider(event.target.value as 'local' | 'gemini')}><option value="local">Offline OCR</option>{!cloudEnabled() && <option value="gemini">Gemini · sends photo to Google</option>}</select><small>{provider === 'gemini' ? hasGeminiKey ? 'Gemini key is set for this browser.' : 'Add your key in Settings to use Gemini.' : cloudEnabled() ? 'Free recognition runs on this device.' : 'Runs on this host without sending the photo to a cloud service.'}</small></label></div></div><div className="receipt-upload-options"><div className={`receipt-dropzone ${dragging ? 'dragging' : ''}`} onDragOver={(event) => { event.preventDefault(); setDragging(true); }} onDragLeave={() => setDragging(false)} onDrop={(event) => { event.preventDefault(); setDragging(false); const file = event.dataTransfer.files[0]; if (file) onFile(file); }}><div className="upload-icon"><FileText size={28}/></div><h2>{isScanning ? 'Reading your receipt…' : 'Upload a receipt image'}</h2><p>{isScanning ? provider === 'gemini' ? 'Gemini is extracting store, date, items, and prices.' : 'Offline OCR is extracting store, date, items, and prices.' : 'Drag and drop a receipt image here, or choose how you want to add it.'}</p><div className="upload-actions"><button className="primary-button" onClick={() => cameraRef.current?.click()} disabled={isScanning}><ReceiptText size={16}/> Take a photo</button><button className="secondary-button" onClick={() => uploadRef.current?.click()} disabled={isScanning}><Plus size={16}/> Upload an image</button></div><small>JPG, PNG, or WEBP · Clear, well-lit photos work best</small><input ref={cameraRef} hidden type="file" accept="image/*" capture="environment" onChange={(event) => { const file = event.target.files?.[0]; event.target.value = ''; if (file) onFile(file); }}/><input ref={uploadRef} hidden type="file" accept="image/*" onChange={(event) => { const file = event.target.files?.[0]; event.target.value = ''; if (file) onFile(file); }}/></div><aside className="phone-upload-card"><div className="phone-upload-icon"><Smartphone size={27}/></div><h2>Scan with your phone</h2><p>Take a photo of the receipt on your phone and it shows up here.</p>{phoneSession && !expired ? <><QRCodeSVG className="phone-upload-qr" value={phoneLink} size={184} includeMargin/><span className="phone-upload-countdown">Works once. Expires in {Math.floor(secondsLeft / 60)}:{String(secondsLeft % 60).padStart(2, '0')}.</span><span>Waiting for your phone…</span></> : expired ? <><p className="phone-upload-expired" role="status">{PHONE_LINK_EXPIRED}</p><button className="secondary-button" disabled={creatingPhoneSession || isScanning} onClick={() => void showPhoneQr()}>{creatingPhoneSession ? 'Creating…' : 'Show a new QR Code'}</button></> : <button className="secondary-button" disabled={creatingPhoneSession || isScanning} onClick={() => void showPhoneQr()}>{creatingPhoneSession ? 'Creating…' : 'Show QR code'}</button>}{phoneError && !expired && <p className="phone-upload-error" role="alert">{phoneError}</p>}</aside></div><div className="manual-entry-line">No receipt image? <button className="text-button" onClick={onManual}>Enter receipt manually</button></div><div className="upload-privacy-note"><span className="status-dot"/> {cloudEnabled() ? 'Recognition runs on this device. Saving a receipt syncs it privately with your household.' : 'Offline OCR keeps your receipt photo on this local server. Gemini is optional and sends the image to Google.'}</div></section>;
 }
 
 function GroceryListsSection() {
@@ -983,7 +1090,7 @@ function Dashboard() {
       />
       <main className="main">
         <div className="content-wrap">
-          {draftReceipt ? <ReceiptReview draft={draftReceipt} timezone={spaces.find((entry) => entry.id === draftReceipt.spaceId)?.timezone ?? space?.timezone ?? timezone} workspaceName={spaces.find((entry) => entry.id === draftReceipt.spaceId)?.name ?? space?.name ?? 'Selected workspace'} onSave={addReceipt} onCancel={() => { setDraftReceipt(null); setShowUploadPage(true); }} /> : showUploadPage ? <ReceiptUploadPage isScanning={isScanning} onFile={handleScanFile} onManual={() => { setShowUploadPage(false); setModal('receipt'); }} onClose={() => { setShowUploadPage(false); setActiveSection('Receipts'); }} provider={scanProvider} setProvider={setScanProvider} hasGeminiKey={Boolean(geminiApiKey)} /> : <>
+          {draftReceipt ? <ReceiptReview draft={draftReceipt} timezone={spaces.find((entry) => entry.id === draftReceipt.spaceId)?.timezone ?? space?.timezone ?? timezone} workspaceName={spaces.find((entry) => entry.id === draftReceipt.spaceId)?.name ?? space?.name ?? 'Selected workspace'} onSave={addReceipt} onCancel={() => { setDraftReceipt(null); setShowUploadPage(true); }} /> : showUploadPage ? <ReceiptUploadPage isScanning={isScanning} onFile={handleScanFile} onManual={() => { setShowUploadPage(false); setModal('receipt'); }} onClose={() => { setShowUploadPage(false); setActiveSection('Receipts'); }} provider={scanProvider} setProvider={setScanProvider} hasGeminiKey={Boolean(geminiApiKey)} spaceId={space?.id ?? ''} /> : <>
           <header className="topbar">
             <div className="page-title">
               <span data-testid="text-page-title">{activeSection}</span>
@@ -1133,7 +1240,7 @@ function Dashboard() {
       />
       {createSpaceOpen && <CreateSpaceModal defaultKind={space?.kind ?? 'household'} onClose={() => setCreateSpaceOpen(false)} onCreate={createSpace}/>}
       {deleteTarget && <div className="modal-overlay danger-overlay" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget && !deleting) { setDeleteTarget(null); setDeleteConfirmation(''); } }}><section className="danger-modal" role="alertdialog" aria-modal="true" aria-labelledby="danger-modal-title"><div className="danger-modal-icon"><Trash2 size={20}/></div><h2 id="danger-modal-title">Delete {deleteTarget === 'account' ? 'account' : 'workspace'}?</h2><p>{deleteTarget === 'account' ? 'Your account and private workspaces will be deleted. Household workspaces with other members will remain available and transfer to another member.' : `“${space?.name ?? 'This workspace'}” and all of its receipts, grocery items, and photos will be permanently deleted for every member.`}</p><label className="field-label">Type <strong>{deleteTarget === 'account' ? 'DELETE ACCOUNT' : space?.name}</strong> to confirm<input className="field-input" autoComplete="off" value={deleteConfirmation} onChange={(event) => setDeleteConfirmation(event.target.value)} placeholder={deleteTarget === 'account' ? 'DELETE ACCOUNT' : space?.name ?? ''}/></label><div className="danger-modal-actions"><button className="secondary-button" disabled={deleting} onClick={() => { setDeleteTarget(null); setDeleteConfirmation(''); }}>Cancel</button><button className="danger-button" disabled={deleting || (deleteTarget === 'account' ? deleteConfirmation !== 'DELETE ACCOUNT' : deleteConfirmation !== space?.name)} onClick={deleteTarget === 'account' ? deleteAccount : deleteWorkspace}>{deleting ? 'Deleting…' : `Delete ${deleteTarget === 'account' ? 'account' : 'workspace'}`}</button></div></section></div>}
-      {toast && <div className="toast-note" role="status" data-testid="status-toast">{toast}</div>}
+      {toast && createPortal(<div className="toast-note" role="status" data-testid="status-toast">{toast}</div>, document.body)}
     </div>
   );
 }
