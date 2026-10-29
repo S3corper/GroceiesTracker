@@ -137,7 +137,10 @@ function LocalAccess({ children }: { children: ReactNode }) {
   const [accountDisplayName, setAccountDisplayName] = useState(() => localStorage.getItem('gt-display-name') ?? '');
   const [accountProfileImage, setAccountProfileImage] = useState(() => localStorage.getItem('gt-profile-image') ?? '');
   const [profileLoaded, setProfileLoaded] = useState(() => localStorage.getItem('gt-profile-image') !== null);
-  const [darkMode, setDarkMode] = useState(() => localStorage.getItem('gt-dark-mode') === 'true');
+  const [darkMode, setDarkMode] = useState(() => {
+    const query = new URLSearchParams(window.location.search);
+    return query.has('mobileUpload') ? query.get('theme') === 'dark' : localStorage.getItem('gt-dark-mode') === 'true';
+  });
   const [spaces, setSpaces] = useState<LocalSpace[]>([]);
   const [selectedId, setSelectedId] = useState(() => localStorage.getItem('gt-space') ?? '');
   const [email, setEmail] = useState('');
@@ -750,7 +753,7 @@ function ReceiptUploadPage({ isScanning, onFile, onManual, onClose, provider, se
   const [secondsLeft, setSecondsLeft] = useState(0);
   const [creatingPhoneSession, setCreatingPhoneSession] = useState(false);
   const nativeCameraAvailable = typeof window !== 'undefined' && 'GroceryNative' in window;
-  const phoneLink = phoneSession ? (() => { const url = new URL(window.location.href); url.search = ''; url.searchParams.set('mobileUpload', phoneSession.token); if (!cloudEnabled()) url.searchParams.set('api', localStorage.getItem('gt-host') ?? 'http://localhost:3000'); return url.toString(); })() : '';
+  const phoneLink = phoneSession ? (() => { const url = new URL(window.location.href); url.search = ''; url.searchParams.set('mobileUpload', phoneSession.token); url.searchParams.set('theme', document.documentElement.classList.contains('dark') ? 'dark' : 'light'); if (!cloudEnabled()) url.searchParams.set('api', localStorage.getItem('gt-host') ?? 'http://localhost:3000'); return url.toString(); })() : '';
   const showPhoneQr = async () => {
     setCreatingPhoneSession(true); setPhoneError('');
     try { const result = await customFetch<{ token: string; expiresAt: string }>('/api/receipts/phone-upload-sessions', { method: 'POST', body: JSON.stringify({ spaceId }) }); setPhoneSession(result); }
